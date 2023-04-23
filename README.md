@@ -1,8 +1,6 @@
 ## scripts for HEDM pre- and post- processing
 
-***.py # for ff-HEDM data converter
+# For APS sector 1 .ge2/ge3/ge5 to HEXRD .npz files
+ge2npz.py
 
-****.py # for nf-HEDM data converter
 
-***.py # test
-git

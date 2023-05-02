@@ -8,7 +8,7 @@ def get_tiff_compression(tiff_path):
 
 def hdf5_to_tiff(input_hdf5, output_folder, prefix, input_tiff_folder, start_num=None, end_num=None):
     with h5py.File(input_hdf5, 'r') as f:
-        dataset = f['/imageseries/images']
+        dataset = f['/exported_data']
 
         # The length of dataset
         num_images = len(dataset)
@@ -31,11 +31,11 @@ def hdf5_to_tiff(input_hdf5, output_folder, prefix, input_tiff_folder, start_num
             imsave(img_path, img, compression=compression)
 
 if __name__ == "__main__":
-    input_hdf5 = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_det0_50bg.h5'
-    output_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/output_tiffs_bgsub'
+    input_hdf5 = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/results.h5'
+    output_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/test_tiffs_headless'
     input_tiff_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_before'
     prefix = 'image'
     start_num = 0
-    end_num = 179
+    end_num = 0
     os.makedirs(output_folder, exist_ok=True)
     hdf5_to_tiff(input_hdf5, output_folder, prefix, input_tiff_folder, start_num, end_num)

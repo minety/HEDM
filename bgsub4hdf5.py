@@ -26,7 +26,7 @@ def bgsub4hdf5(h5input, h5output, num_images, omega, numframes, bg_pct, bg_nf):
 
     # Now, apply the processing options
     ProcessedIS = imageseries.process.ProcessedImageSeries
-    ops = [('dark', dark), ('flip', 'h')] # None, 'h', 'v', etc.
+    ops = [('dark', dark), ('flip', None)] # None, 'h', 'v', etc.
     pimgs = ProcessedIS(ims, ops)
 
     # Save the processed imageseries in hdf5 format
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     omega = 1 # omega rotation angle in degree
     numframes = 180 # number of frames to export may be different with num_images which include some empty images
     bg_pct = 50 # background to subtract in percentile
-    bg_nf = 60 # number of frames to use to generate dark field image               
+    bg_nf = 90 # number of frames to use to generate dark field image               
     bgsub4hdf5(h5input, h5output, num_images, omega, numframes, bg_pct, bg_nf)
 
 

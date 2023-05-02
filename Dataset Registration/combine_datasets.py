@@ -10,6 +10,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.pyplot import figure
 from hexrd import rotations as rot
 from hexrd import matrixutil as mutil
+from tqdm import tqdm
 
 # Position to centroids from FF to NF
 def ff_pos_to_Centroids(x):
@@ -104,7 +105,6 @@ def combine_datasets_with_condition(df, df_ep, mis, layer, grain_size, deformati
         filtered_indices = filtered_df[filter2_conditions].index
 
         df = update_dataframe(df, df_ep, grain_index, filtered_indices)
-        print(grain_index)
     return df
 
 def get_base_conditions(df, layer, grain_size, deformation):
@@ -147,7 +147,7 @@ if __name__ == '__main__':
     grain_size = 5 # austenite grain size
     #########################
     # Variables to be change
-    for deformation in [1]:  # [1, 2, 3, 4]
+    for deformation in tqdm([1]):  # [1, 2, 3, 4]
         if deformation == 1:
             folder_name = 's7'
         elif deformation == 2:

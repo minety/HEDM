@@ -26,16 +26,16 @@ def bgsub4hdf5(h5input, h5output, num_images, omega, numframes, bg_pct, bg_nf):
 
     # Now, apply the processing options
     ProcessedIS = imageseries.process.ProcessedImageSeries
-    ops = [('dark', dark), ('flip', None)] # None, 'h', 'v', etc.
+    ops = [('dark', dark), ('flip', 'h')] # None, 'h', 'v', etc.
     pimgs = ProcessedIS(ims, ops)
 
     # Save the processed imageseries in hdf5 format
     imageseries.write(pimgs, h5output,'hdf5', path='/imageseries')
 
 if __name__ == "__main__":
-    h5input = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_det0.hdf5' 
+    h5input = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_det1.hdf5' 
     print(h5input)
-    h5output = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_det0_50bg.h5'
+    h5output = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_det1_50bg.h5'
     print(h5output)
     num_images = 180 # number of frames in total in hdf5 file
     omega = 1 # omega rotation angle in degree

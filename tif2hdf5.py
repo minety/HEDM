@@ -38,6 +38,6 @@ def create_hdf5(input_folder, output_file, start_num=None, end_num=None):
 if __name__ == "__main__":
     input_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_before'
     output_file = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_det1.hdf5'
-    start_num = 180
-    end_num = 359
+    start_num = 0
+    end_num = 179
     create_hdf5(input_folder, output_file, start_num, end_num)

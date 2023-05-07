@@ -12,7 +12,7 @@ from hexrd import rotations as rot
 from hexrd import matrixutil as mutil
 from hexrd import config
 from hexrd import instrument
-
+from tqdm import tqdm
 
 def Variant_Identifier(row):
     # Specify two crystal structures and symmetries
@@ -42,7 +42,8 @@ def Variant_Identifier(row):
 
         ang_1 = v_1_ori.unit
         ang_2 = v_2_ori.unit
-        comp_1 = abs(ang_1.dot(ang_2)) #cos
+        # Ensure the dot product is within valid range for arccos
+        comp_1 = np.clip(abs(ang_1.dot(ang_2)), -1, 1)
         angle_radians = np.arccos(comp_1)
         angle_degrees = np.degrees(angle_radians)
 
@@ -53,12 +54,26 @@ def Variant_Identifier(row):
         threshold = 10   # Can be changed default 5 degree to allow some grain rotation during deformation
         if min_angle < threshold:  
             min_index = np.argmin(angle_degrees) + 1
-            print(min_angle)
             return min_index, min_angle
         else:
             return np.nan, np.nan
     else:
         return np.nan, np.nan
 
-# Apply the Variant_Identifier function to each row of the DataFrame
-new_df['Epsilon_variant'], new_df['Dev_ang_SN'] = zip(*new_df.apply(Variant_Identifier, axis=1))
+def process_dataframe(input_filepath, output_filepath):
+    # Read the input dataframe
+    combined_df = pd.read_csv(input_filepath, sep='\t', encoding='utf-8')
+
+    # Apply the Variant_Identifier function to each row of the DataFrame with a progress bar
+    tqdm.pandas(desc="Processing rows")
+    combined_df['Epsilon_variant'], combined_df['Dev_ang_SN'] = zip(*combined_df.progress_apply(Variant_Identifier, axis=1))
+
+    # Save the output dataframe
+    combined_df.to_csv(output_filepath, sep='\t', encoding='utf-8', header='true', index=False)
+
+
+if __name__ == "__main__":
+    input_file = '/Users/yetian/Dropbox/My Mac (Ye’s MacBook Pro)/Desktop/APS_2021Feb_RAMS/Pre_CSV_files/sam3_Fe18Cr10p2_nf_ff_combined_s1_s10_new.csv'
+    output_file = '/Users/yetian/Dropbox/My Mac (Ye’s MacBook Pro)/Desktop/APS_2021Feb_RAMS/Pre_CSV_files/sam3_Fe18Cr10p2_nf_ff_combined_s1_s10_variants.csv'
+
+    process_dataframe(input_file, output_file)

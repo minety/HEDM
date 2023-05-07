@@ -34,7 +34,7 @@ class FileConverter:
         return os.path.dirname(self.input_file)
 
     def convert(self, *args, **kwargs):
-        raise NotImplementedError("子类应该实现此方法")
+        raise NotImplementedError("Subclass should implement this method")
 
     def tif2hdf5(self):
         input_file_prefix = os.path.splitext(os.path.basename(self.input_file))[0].rstrip("0123456789")
@@ -57,7 +57,7 @@ class FileConverter:
         with h5py.File(self.output_file, 'w') as f:
             # Create a dataset with the shape (num_images, height, width) and the same dtype as the first image
             dataset = f.create_dataset('images', (len(image_paths), h, w), dtype=first_image.dtype)
-            # 输出数据集中的图像数量
+            # Print the number of images in the dataset
             print(f"Number of images in the dataset: {len(image_paths)}")
             # Write the first image
             dataset[0] = first_image
@@ -94,7 +94,7 @@ class FileConverter:
         with h5py.File(self.output_file, 'w') as f:
             # Create a dataset with the shape (num_images, height, width) and the same dtype as the first image
             dataset = f.create_dataset('images', (self.num_images, height, width), dtype=image_data.dtype)
-            # 输出数据集中的图像数量
+            # Print the number of images in the dataset
             print(f"Number of images in the dataset: {self.num_images}")
             # Write the images
             for i, img in enumerate(image_data):
@@ -160,9 +160,9 @@ class ToIlastikConverter(FileConverter):
             if not self.bgsub:
                 print("Input file is already in .h5 format. Copying to output file with a new name...")
                 self.hdf5_to_hdf5()
-            # 如果bgsub是True，则直接进行下面的背景减除操作
+            # If bgsub is True, proceed with the background subtraction operation below
         else:
-            print(f"不支持的输入格式：{self.input_format}")
+            print(f"Unsupported input format: {self.input_format}")
 
         if self.bgsub:
             print("Applying background subtraction...")
@@ -172,19 +172,19 @@ class ToIlastikConverter(FileConverter):
 class ToHexrdConverter(FileConverter):
     def convert(self):
         print("Converting to hexrd format...")
-        # 转换为 hexrd 格式的代码
+        # Code to convert to hexrd format
         pass
 
 class ToHexomapConverter(FileConverter):
     def convert(self):
         print("Converting to hexomap format...")
-        # 转换为 hexomap 格式的代码
+        # Code to convert to hexomap format
         pass
 
 class ToImageD11Converter(FileConverter):
     def convert(self):
         print("Converting to ImageD11 format...")
-        # 转换为 ImageD11 格式的代码
+        # Code to convert to ImageD11 format
         pass
 
 def run_conversion(converter_class, **params):

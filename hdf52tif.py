@@ -31,11 +31,11 @@ def hdf5_to_tiff(input_hdf5, output_folder, prefix, input_tiff_folder, start_num
             imsave(img_path, img, compression=compression)
 
 if __name__ == "__main__":
-    input_hdf5 = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/results.h5'
-    output_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/test_tiffs_headless'
+    input_hdf5 = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/results_n3_det1.h5'
+    output_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/test_tiffs_headless_n3_det1'
     input_tiff_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_before'
     prefix = 'image'
     start_num = 0
-    end_num = 0
+    end_num = 2
     os.makedirs(output_folder, exist_ok=True)
     hdf5_to_tiff(input_hdf5, output_folder, prefix, input_tiff_folder, start_num, end_num)

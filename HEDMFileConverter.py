@@ -16,7 +16,6 @@ class FileConverter:
         self.input_folder = self._get_input_folder()
         self.start_num = self.params.get('start_num', None)
         self.end_num = self.params.get('end_num', None) 
-        # self.gefile = self.params.get('gefile', None)
         self.num_images = self.params.get('num_images', None)
         self.omega = self.params.get('omega', None)
         self.bg_pct = self.params.get('bg_pct', None)
@@ -24,7 +23,9 @@ class FileConverter:
         self.bgsub_h5 = self.params.get('bgsub_h5_file', None)
         self.bgsub = self.params.get('bgsub', True)
         self.empty_images = self.params.get('empty_images', 0)
-
+        self.slice_images = self.params.get('slice_images', 0)
+        self.slice_input_file = self.params.get('slice_input_file', None)
+        self.slice_output_file = self.params.get('slice_output_file', None)
 
     def _get_file_format(self):
         _, ext = os.path.splitext(self.input_file)
@@ -40,8 +41,10 @@ class FileConverter:
         input_file_prefix = os.path.splitext(os.path.basename(self.input_file))[0].rstrip("0123456789")
 
         image_paths = [os.path.join(self.input_folder, img_path) for img_path in os.listdir(self.input_folder) if (img_path.lower().endswith('.tif') or img_path.lower().endswith('.tiff')) and img_path.startswith(input_file_prefix)]
+
         if len(image_paths) == 0:
-            raise ValueError("No image paths found with the given prefix.")
+            print(f"No image paths found with the given prefix: {input_file_prefix}")
+            return
 
         # Sort the image paths to ensure they are in the correct order
         image_paths = sorted(image_paths, key=lambda x: int(re.search(r'\d{6}', x).group()))
@@ -50,22 +53,35 @@ class FileConverter:
             image_paths = image_paths[self.start_num:self.end_num+1]
 
         # Load the first image to get dimensions
-        first_image = imread(image_paths[0])
+        try:
+            first_image = imread(image_paths[0])
+        except Exception as e:
+            print(f"Error loading the first image: {e}")
+            return
+
         h, w = first_image.shape
 
         # Create an HDF5 file
-        with h5py.File(self.output_file, 'w') as f:
-            # Create a dataset with the shape (num_images, height, width) and the same dtype as the first image
-            dataset = f.create_dataset('images', (len(image_paths), h, w), dtype=first_image.dtype)
-            # Print the number of images in the dataset
-            print(f"Number of images in the dataset: {len(image_paths)}")
-            # Write the first image
-            dataset[0] = first_image
+        try:
+            with h5py.File(self.output_file, 'w') as f:
+                # Create a dataset with the shape (num_images, height, width) and the same dtype as the first image
+                dataset = f.create_dataset('images', (len(image_paths), h, w), dtype=first_image.dtype)
+                # Print the number of images in the dataset
+                print(f"Number of images in the dataset: {len(image_paths)}")
+                # Write the first image
+                dataset[0] = first_image
 
-            # Write the remaining images
-            for i, img_path in enumerate(image_paths[1:], start=1):
-                img = imread(img_path)
-                dataset[i] = img
+                # Write the remaining images
+                for i, img_path in enumerate(image_paths[1:], start=1):
+                    try:
+                        img = imread(img_path)
+                    except Exception as e:
+                        print(f"Error loading image {img_path}: {e}")
+                        continue
+                    dataset[i] = img
+        except Exception as e:
+            print(f"Error creating the HDF5 file: {e}")
+
 
     def make_meta():
         return {'testing': '1,2,3'}
@@ -187,6 +203,21 @@ class ToImageD11Converter(FileConverter):
         # Code to convert to ImageD11 format
         pass
 
+class HDF5Slicer(FileConverter):
+    def hdf5slice(self):
+        with h5py.File(self.slice_input_file, 'r') as f:
+            if self.bgsub:
+                images = f['/imageseries/images']
+            else:
+                images = f['/images']
+            with h5py.File(self.slice_output_file, 'w') as f_example:
+                example_images = f_example.create_dataset('images', (self.slice_images, images.shape[1], images.shape[2]), dtype=images.dtype)
+                example_images[:] = images[:self.slice_images, :, :]
+
+    def convert(self):
+        print("Slicing HDF5 file...")
+        self.hdf5slice()
+
 def run_conversion(converter_class, **params):
     converter = converter_class(**params)
     converter.convert()
@@ -195,10 +226,12 @@ if __name__ == "__main__":
     # Example usage, for .tif/.tiff files just choose a random (number) file with the right prefix you want to process
     input_file = '/Users/yetian/Dropbox/My Mac (Ye’s MacBook Pro)/Desktop/Ryan_test_data/APS_2023Feb/nf_test/class_test_1.h5'
     output_file = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/class_test_1_1.h5'
+    slice_output_file = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/class_test_1_slice.h5'
+    slice_images = 5 
     empty_images = 2
     start_num = 0
     end_num = 10
-    bgsub_h5_file = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/class_bgsub_50pct_test_1.h5'
+    bgsub_h5_file = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/class_bgsub_50pct_test.h5'
     num_images = 80 # number of frames in total in hdf5 file
     omega = 0.25 # omega rotation angle in degree
     bg_pct = 75 # background to subtract in percentile
@@ -216,10 +249,13 @@ if __name__ == "__main__":
         'omega': omega,
         'bg_pct': bg_pct,
         'bg_nf': bg_nf,
-        'bgsub': bgsub
+        'bgsub': bgsub,
+        'slice_input_file': bgsub_h5_file if bgsub else output_file,
+        'slice_output_file': slice_output_file,
+        'slice_images': slice_images
     }
     
     run_conversion(ToIlastikConverter, **params)
-    
+    run_conversion(HDF5Slicer, **params) 
 
 

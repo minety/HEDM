@@ -25,8 +25,9 @@ def hdf5_to_tiff(input_hdf5, output_folder, prefix, input_tiff_folder, start_num
         compression = get_tiff_compression(first_tiff_path)
 
         for i in range(start_idx, end_idx):
-            img = dataset[i]
-            img_filename = f"{prefix}_{i:06d}.tif"
+            img = dataset[i].squeeze()
+            img[img < 500] = 0
+            img_filename = f"{prefix}_{i + output_offset:06d}.tif"
             img_path = os.path.join(output_folder, img_filename)
             imsave(img_path, img, compression=compression)
 
@@ -37,5 +38,6 @@ if __name__ == "__main__":
     prefix = 'image'
     start_num = 0
     end_num = 2
+    output_offset = 180
     os.makedirs(output_folder, exist_ok=True)
     hdf5_to_tiff(input_hdf5, output_folder, prefix, input_tiff_folder, start_num, end_num)

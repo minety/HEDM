@@ -254,7 +254,7 @@ if __name__ == '__main__':
     grain_size = 5 # austenite grain size
     # #########################
     # Variables to be change (epsilon-martensite)
-    for deformation in tqdm([1]):  # [1, 2, 3, 4]
+    for deformation in tqdm([1,2,3,4]):  # [1, 2, 3, 4]
         if deformation == 1:
             folder_name = 's7'
         elif deformation == 2:

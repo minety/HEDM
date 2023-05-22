@@ -4,7 +4,7 @@ from hexrd.imageseries.omega import OmegaWedges
 import os
 import h5py
 import re
-from tifffile import imread
+from tifffile import imread, TiffFile, imsave
 
 
 class FileConverter:
@@ -26,6 +26,35 @@ class FileConverter:
         self.slice_images = self.params.get('slice_images', 0)
         self.slice_input_file = self.params.get('slice_input_file', None)
         self.slice_output_file = self.params.get('slice_output_file', None)
+
+    def hdf5_to_tiff(self, output_offset, output_tiff_folder, prefix, input_tiff_folder, start_num=None, end_num=None):
+        with h5py.File(input_proc_file, 'r') as f:
+            dataset = f['/exported_data']
+
+            # The length of dataset
+            num_images = len(dataset)
+
+            # start and end idx
+            start_idx = 0 if start_num is None else start_num
+            end_idx = num_images if end_num is None else end_num + 1
+
+            if start_idx >= num_images or end_idx > num_images:
+                raise ValueError(f"Invalid range: start_num and end_num must be within the range of the dataset (0-{num_images - 1}).")
+
+            # get the tiff compression method for nf-hedm at aps
+            first_tiff_path = [os.path.join(input_tiff_folder, p) for p in os.listdir(input_tiff_folder) if p.lower().endswith('.tif') or p.lower().endswith('.tiff')][0]
+            compression = self.get_tiff_compression(first_tiff_path)
+
+            for i in range(start_idx, end_idx):
+                img = dataset[i].squeeze()
+                img[img < 50] = 0
+                img_filename = f"{prefix}_{i + output_offset:06d}.tif"
+                img_path = os.path.join(output_tiff_folder, img_filename)
+                imsave(img_path, img, compression=compression)
+
+    def get_tiff_compression(tiff_path):
+        with TiffFile(tiff_path) as tif:
+            return tif.pages[0].compression
 
     def _get_file_format(self):
         _, ext = os.path.splitext(self.input_file)
@@ -218,6 +247,16 @@ class HDF5Slicer(FileConverter):
         print("Slicing HDF5 file...")
         self.hdf5slice()
 
+class HDF5ToTiffConverter(FileConverter):
+    def convert(self):
+        print("Converting HDF5 to TIFF format...")
+        self.hdf5_to_tiff(self.params.get('output_tiff_folder'), 
+                          self.params.get('prefix'),
+                          self.params.get('output_offset'), 
+                          self.params.get('input_tiff_folder'), 
+                          self.params.get('start_num'), 
+                          self.params.get('end_num'))
+
 def run_conversion(converter_class, **params):
     converter = converter_class(**params)
     converter.convert()
@@ -254,8 +293,18 @@ if __name__ == "__main__":
         'slice_output_file': slice_output_file,
         'slice_images': slice_images
     }
-    
+
+    tiff_params = {
+        'output_tiff_folder': '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/test_tiffs_headless_n3_det1',
+        'input_proc_file': 'nugget1_nf_det1_layer0_50bg180nf_slice',
+        'input_tiff_folder': '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_before',
+        'output_offset': 180,
+        'prefix': 'image',
+        'start_num': 0,
+        'end_num': 180,
+    }
+
     run_conversion(ToIlastikConverter, **params)
     run_conversion(HDF5Slicer, **params) 
-
+    run_conversion(HDF5ToTiffConverter, **tiff_params)
 

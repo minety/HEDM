@@ -1,12 +1,29 @@
 import os
 import h5py
+import re
 from tifffile import TiffFile, imsave
 
 def get_tiff_compression(tiff_path):
     with TiffFile(tiff_path) as tif:
         return tif.pages[0].compression
+    
+def sort_key(filename):
+    match = re.match(r'nugget1_nf_layer(\d+)_det(\d+)_50bg_proc.h5', filename)
+    if not match:
+        return float('inf')  # 将不符合格式的文件排在最后
+    layer, det = map(int, match.groups())
+    return layer * 2 + det  # 按照 layer 和 det 的数值进行排序
 
-def hdf5_to_tiff(input_hdf5, output_folder, prefix, input_tiff_folder, start_num=None, end_num=None):
+
+
+def get_start_num_from_filename(filename):
+    match = re.match(r'nugget1_nf_layer(\d+)_det(\d+)_50bg_proc.h5', filename)
+    if not match:
+        raise ValueError(f"Invalid filename: {filename}")
+    layer, det = map(int, match.groups())
+    return (layer * 2 + det) * 180
+
+def hdf5_to_tiff(input_hdf5, output_folder, prefix, input_tiff_folder, start_num=None, end_num=None, output_offset=0):
     with h5py.File(input_hdf5, 'r') as f:
         dataset = f['/exported_data']
 
@@ -26,18 +43,22 @@ def hdf5_to_tiff(input_hdf5, output_folder, prefix, input_tiff_folder, start_num
 
         for i in range(start_idx, end_idx):
             img = dataset[i].squeeze()
-            img[img < 500] = 0
+            img[img < 50] = 0
             img_filename = f"{prefix}_{i + output_offset:06d}.tif"
             img_path = os.path.join(output_folder, img_filename)
             imsave(img_path, img, compression=compression)
 
 if __name__ == "__main__":
-    input_hdf5 = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/results_n3_det1.h5'
+    input_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb'
     output_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/test_tiffs_headless_n3_det1'
     input_tiff_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_before'
     prefix = 'image'
-    start_num = 0
-    end_num = 2
-    output_offset = 180
     os.makedirs(output_folder, exist_ok=True)
-    hdf5_to_tiff(input_hdf5, output_folder, prefix, input_tiff_folder, start_num, end_num)
+
+    hdf5_files = sorted([f for f in os.listdir(input_folder) if f.lower().endswith('50bg_proc.h5')], key=sort_key)
+
+    for hdf5_file in hdf5_files:
+        input_hdf5 = os.path.join(input_folder, hdf5_file)
+        output_offset = get_start_num_from_filename(hdf5_file)
+        hdf5_to_tiff(input_hdf5, output_folder, prefix, input_tiff_folder, output_offset=output_offset)
+

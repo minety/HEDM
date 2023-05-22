@@ -6,7 +6,7 @@ from tifffile import TiffFile, imsave
 def get_tiff_compression(tiff_path):
     with TiffFile(tiff_path) as tif:
         return tif.pages[0].compression
-    
+
 def sort_key(filename):
     match = re.match(r'nugget1_nf_layer(\d+)_det(\d+)_50bg_proc.h5', filename)
     if not match:
@@ -48,14 +48,26 @@ def hdf5_to_tiff(input_hdf5, output_folder, prefix, input_tiff_folder, start_num
             img_path = os.path.join(output_folder, img_filename)
             imsave(img_path, img, compression=compression)
 
+def get_layer_from_filename(filename):
+    match = re.match(r'nugget1_nf_layer(\d+)_det(\d+)_50bg_proc.h5', filename)
+    if not match:
+        raise ValueError(f"Invalid filename: {filename}")
+    layer, det = map(int, match.groups())
+    return layer
+
+
+
 if __name__ == "__main__":
-    input_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb'
-    output_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/test_tiffs_headless_n3_det1'
-    input_tiff_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_before'
-    prefix = 'image'
+    input_folder = '/home/ytian37/data-rhurley6/APS_RAMS_2023Feb/nf'
+    output_folder = '/home/ytian37/data-rhurley6/APS_RAMS_2023Feb/nf/nf_ilastik_proc'
+    input_tiff_folder = '/home/ytian37/data-rhurley6/APS_RAMS_2023Feb/nf/nugget1_nf_int_before'
+    prefix = 'nugget1_nf_int_1degree'
     os.makedirs(output_folder, exist_ok=True)
 
-    hdf5_files = sorted([f for f in os.listdir(input_folder) if f.lower().endswith('50bg_proc.h5')], key=sort_key)
+    selected_layers = [20]  #[0, 1] Change this to the layers you want to process
+    #selected_layers = list(range(0, 20))  # This will generate a list with numbers from 0 to 19
+
+    hdf5_files = sorted([f for f in os.listdir(input_folder) if f.lower().endswith('50bg_proc.h5') and get_layer_from_filename(f) in selected_layers], key=sort_key)
 
     for hdf5_file in hdf5_files:
         input_hdf5 = os.path.join(input_folder, hdf5_file)

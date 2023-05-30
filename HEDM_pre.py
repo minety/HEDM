@@ -6,11 +6,15 @@ import h5py
 import re
 from tifffile import imread, TiffFile, imsave
 
-
 class FileConverter:
     def __init__(self, **kwargs):
         self.params = kwargs
         self.input_file = self.params.get('input_file')
+        self.imageseries_path = '/imageseries/images'
+        self.image_default_path = '/images'
+        self.image_input_path = self.params.get('image_input_path') 
+        self.image_ilastik_path = '/exported_data'
+        self.image_slice_path = None
         self.output_file = self.params.get('output_file')
         self.input_format = self._get_file_format()
         self.input_folder = self._get_input_folder()
@@ -23,34 +27,11 @@ class FileConverter:
         self.bgsub_h5 = self.params.get('bgsub_h5_file', None)
         self.bgsub = self.params.get('bgsub', True)
         self.empty_images = self.params.get('empty_images', 0)
+        self.slice_file = self.params.get('slice_file', False)
         self.slice_images = self.params.get('slice_images', 0)
         self.slice_input_file = self.params.get('slice_input_file', None)
         self.slice_output_file = self.params.get('slice_output_file', None)
-
-    def hdf5_to_tiff(self, output_offset, output_tiff_folder, prefix, input_tiff_folder, start_num=None, end_num=None):
-        with h5py.File(input_proc_file, 'r') as f:
-            dataset = f['/exported_data']
-
-            # The length of dataset
-            num_images = len(dataset)
-
-            # start and end idx
-            start_idx = 0 if start_num is None else start_num
-            end_idx = num_images if end_num is None else end_num + 1
-
-            if start_idx >= num_images or end_idx > num_images:
-                raise ValueError(f"Invalid range: start_num and end_num must be within the range of the dataset (0-{num_images - 1}).")
-
-            # get the tiff compression method for nf-hedm at aps
-            first_tiff_path = [os.path.join(input_tiff_folder, p) for p in os.listdir(input_tiff_folder) if p.lower().endswith('.tif') or p.lower().endswith('.tiff')][0]
-            compression = self.get_tiff_compression(first_tiff_path)
-
-            for i in range(start_idx, end_idx):
-                img = dataset[i].squeeze()
-                img[img < 50] = 0
-                img_filename = f"{prefix}_{i + output_offset:06d}.tif"
-                img_path = os.path.join(output_tiff_folder, img_filename)
-                imsave(img_path, img, compression=compression)
+    
 
     def get_tiff_compression(tiff_path):
         with TiffFile(tiff_path) as tif:
@@ -134,17 +115,18 @@ class FileConverter:
         # Remove the specified number of empty images
         if self.empty_images > 0:
             image_data = image_data[self.empty_images:]
-    
+
         # Create an HDF5 file
         with h5py.File(self.output_file, 'w') as f:
-            # Create a dataset with the shape (num_images, height, width) and the same dtype as the first image
-            dataset = f.create_dataset('images', (self.num_images, height, width), dtype=image_data.dtype)
+            # Create a dataset with the shape (num_images-empty_images, height, width) and the same dtype as the first image
+            dataset = f.create_dataset('images', (len(image_data), height, width), dtype=image_data.dtype)
             # Print the number of images in the dataset
-            print(f"Number of images in the dataset: {self.num_images}")
+            print(f"Number of images in the dataset: {len(image_data)}")
             # Write the images
             for i, img in enumerate(image_data):
                 dataset[i] = img
 
+    # May need to modified later for SOLEIL data
     def hdf5_to_hdf5(self):
         # Copy the input HDF5 file to the output file with a new name and change the internal path to /images
         with h5py.File(self.input_file, 'r') as input_file:
@@ -162,7 +144,6 @@ class FileConverter:
                     output_dataset = output_file.create_dataset(f'/images', shape=input_dataset.shape, dtype=input_dataset.dtype)
                     # Copy the data from the input dataset to the output dataset
                     output_dataset[()] = input_dataset[()]
-
 
     def bgsub4hdf5(self):
         ims = imageseries.open(
@@ -193,118 +174,128 @@ class FileConverter:
         # Save the processed imageseries in hdf5 format
         imageseries.write(pimgs, self.bgsub_h5,'hdf5', path='/imageseries')
 
-class ToIlastikConverter(FileConverter):
+    def hdf5_to_tiff(self, output_offset, output_tiff_folder, prefix, input_tiff_folder, start_num=None, end_num=None):
+        with h5py.File(input_proc_file, 'r') as f:
+            dataset = f['/exported_data']
+
+            # The length of dataset
+            num_images = len(dataset)
+
+            # start and end idx
+            start_idx = 0 if start_num is None else start_num
+            end_idx = num_images if end_num is None else end_num + 1
+
+            if start_idx >= num_images or end_idx > num_images:
+                raise ValueError(f"Invalid range: start_num and end_num must be within the range of the dataset (0-{num_images - 1}).")
+
+            # get the tiff compression method for nf-hedm at aps
+            first_tiff_path = [os.path.join(input_tiff_folder, p) for p in os.listdir(input_tiff_folder) if p.lower().endswith('.tif') or p.lower().endswith('.tiff')][0]
+            compression = self.get_tiff_compression(first_tiff_path)
+
+            for i in range(start_idx, end_idx):
+                img = dataset[i].squeeze()
+                img[img < 50] = 0
+                img_filename = f"{prefix}_{i + output_offset:06d}.tif"
+                img_path = os.path.join(output_tiff_folder, img_filename)
+                imsave(img_path, img, compression=compression)
+
+    def hdf5slice(self):
+        with h5py.File(self.slice_input_file, 'r') as f:
+            images = f[self.image_slice_path]
+            with h5py.File(self.slice_output_file, 'w') as f_example:
+                example_images = f_example.create_dataset('images', (self.slice_images, images.shape[1], images.shape[2]), dtype=images.dtype)
+                example_images[:] = images[:self.slice_images, :, :]
+
+class Standardize_format(FileConverter):
     def convert(self):
-        print("Converting to ilastik format...")
+        print("Standardizing format...")
         if self.input_format in ('.ge', '.ge2', '.ge3', '.ge5'):
+            print("Converting from .ge format to .h5...")
             self.ge2hdf5()
         elif self.input_format in ('.tif', '.tiff'):
             print("Converting from .tif format to .h5...")
             self.tif2hdf5()
         elif self.input_format in ('.hdf5', '.h5'):
-            if not self.bgsub:
-                print("Input file is already in .h5 format. Copying to output file with a new name...")
-                self.hdf5_to_hdf5()
-            # If bgsub is True, proceed with the background subtraction operation below
+            print("Input file is already in .h5 format. Copying to output file with a new name after deleting empty frames...")
+            self.hdf5_to_hdf5()
         else:
             print(f"Unsupported input format: {self.input_format}")
+        
+        if self.slice_file:
+           print("Generating sliced raw data...")
+           self.slice_input_file = self.output_file
+           self.image_slice_path = self.image_default_path
+           self.hdf5slice()
 
+class Subtract_background(FileConverter):
+    def convert(self):
         if self.bgsub:
             print("Applying background subtraction...")
             self.bgsub4hdf5()
 
-
-class ToHexrdConverter(FileConverter):
+class Process_with_ilastik(FileConverter):
     def convert(self):
-        print("Converting to hexrd format...")
-        # Code to convert to hexrd format
-        pass
+        if self.ilastik_proc:
+            print("Processing with ilastik...")
+            self.ilastik_proc_h5() 
 
-class ToHexomapConverter(FileConverter):
+class Convert_to_hedm_formats(FileConverter):
     def convert(self):
-        print("Converting to hexomap format...")
-        # Code to convert to hexomap format
-        pass
-
-class ToImageD11Converter(FileConverter):
-    def convert(self):
-        print("Converting to ImageD11 format...")
-        # Code to convert to ImageD11 format
-        pass
-
-class HDF5Slicer(FileConverter):
-    def hdf5slice(self):
-        with h5py.File(self.slice_input_file, 'r') as f:
-            if self.bgsub:
-                images = f['/imageseries/images']
-            else:
-                images = f['/images']
-            with h5py.File(self.slice_output_file, 'w') as f_example:
-                example_images = f_example.create_dataset('images', (self.slice_images, images.shape[1], images.shape[2]), dtype=images.dtype)
-                example_images[:] = images[:self.slice_images, :, :]
-
-    def convert(self):
-        print("Slicing HDF5 file...")
-        self.hdf5slice()
-
-class HDF5ToTiffConverter(FileConverter):
-    def convert(self):
-        print("Converting HDF5 to TIFF format...")
-        self.hdf5_to_tiff(self.params.get('output_tiff_folder'), 
-                          self.params.get('prefix'),
-                          self.params.get('output_offset'), 
-                          self.params.get('input_tiff_folder'), 
-                          self.params.get('start_num'), 
-                          self.params.get('end_num'))
+        if self.generate_hexomap_files:
+            print("Generating hexomap files...")
+            self.hdf5_to_tiff()
 
 def run_conversion(converter_class, **params):
     converter = converter_class(**params)
     converter.convert()
 
 if __name__ == "__main__":
-    # Example usage, for .tif/.tiff files just choose a random (number) file with the right prefix you want to process
-    input_file = '/Users/yetian/Dropbox/My Mac (Ye’s MacBook Pro)/Desktop/Ryan_test_data/APS_2023Feb/nf_test/class_test_1.h5'
-    output_file = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/class_test_1_1.h5'
-    slice_output_file = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/class_test_1_slice.h5'
-    slice_images = 5 
+    base_dir = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/'
+    # input_file = base_dir + 'nugget1_nf_int_before/nugget1_nf_int4_000000.tif'
+    input_file = base_dir + 'test_nugget1_002_000050.edf.ge5'
+    image_input_path = '/input_path'
+    slice_file = True
+    slice_images = 1
     empty_images = 2
-    start_num = 0
-    end_num = 10
-    bgsub_h5_file = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/class_bgsub_50pct_test.h5'
-    num_images = 80 # number of frames in total in hdf5 file
-    omega = 0.25 # omega rotation angle in degree
-    bg_pct = 75 # background to subtract in percentile
-    bg_nf = 30 # number of frames to use to generate dark field image   
-    bgsub = False
+    num_images = 200 # number of frames in total in hdf5 file
+    omega = 0.1 # omega rotation angle in degree
+    bg_pct = 50 # background to subtract in percentile
+    bg_nf = num_images-empty_images # number of frames to use to generate dark field image   
+    bgsub = True
+    start_constant = 0 # replace with the constant you mentioned
 
-    params = {
-        'input_file': input_file,
-        'output_file': output_file,
-        'empty_images': empty_images, 
-        'start_num': start_num,
-        'end_num': end_num,
-        'bgsub_h5_file': bgsub_h5_file,
-        'num_images': num_images,
-        'omega': omega,
-        'bg_pct': bg_pct,
-        'bg_nf': bg_nf,
-        'bgsub': bgsub,
-        'slice_input_file': bgsub_h5_file if bgsub else output_file,
-        'slice_output_file': slice_output_file,
-        'slice_images': slice_images
-    }
+    layers = 1 # replace with the actual value
+    dets = 1 # replace with the actual value
 
-    tiff_params = {
-        'output_tiff_folder': '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/test_tiffs_headless_n3_det1',
-        'input_proc_file': 'nugget1_nf_det1_layer0_50bg180nf_slice',
-        'input_tiff_folder': '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_before',
-        'output_offset': 180,
-        'prefix': 'image',
-        'start_num': 0,
-        'end_num': 180,
-    }
+    for layer in range(layers):
+        for det in range(dets):
+            output_file = base_dir + 'nugget1_nf_det{}_layer{}.h5'.format(det, layer)
+            slice_output_file = base_dir + 'nugget1_nf_det{}_layer{}_50bg180nf_slice.h5'.format(det, layer)
+            bgsub_h5_file = base_dir + 'nugget1_nf_det{}_layer{}_50bg.h5'.format(det, layer)
+            
+            start_num = start_constant + layer*num_images*omega*dets + det*num_images*omega
+            end_num = start_num + num_images*omega -1
 
-    run_conversion(ToIlastikConverter, **params)
-    run_conversion(HDF5Slicer, **params) 
-    run_conversion(HDF5ToTiffConverter, **tiff_params)
+            print("Currently executing for layer: {}, det: {}, start_num: {}".format(layer, det, start_num))  # print current layer, det and start_num
+            
+            params = {
+                'input_file': input_file,
+                'output_file': output_file,
+                'empty_images': empty_images, 
+                'start_num': start_num,
+                'end_num': end_num,
+                'bgsub_h5_file': bgsub_h5_file,
+                'num_images': num_images,
+                'omega': omega,
+                'bg_pct': bg_pct,
+                'bg_nf': bg_nf,
+                'bgsub': bgsub,
+                'slice_file': slice_file,
+                'slice_input_file': bgsub_h5_file if bgsub else output_file,
+                'slice_output_file': slice_output_file,
+                'slice_images': slice_images
+            }
+
+    run_conversion(Standardize_format, **params)
+
 

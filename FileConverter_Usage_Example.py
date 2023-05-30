@@ -3,7 +3,7 @@ import sys
 
 sys.path.append("/home/ytian37/scratch4-rhurley6/HEDM")  # add the directory to sys.path
 
-from HEDMFileConverter import ToIlastikConverter, HDF5Slicer, run_conversion
+from HEDM_pre import ToIlastikConverter, HDF5Slicer, run_conversion
 
 def main():
     base_dir = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/'

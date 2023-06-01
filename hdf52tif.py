@@ -8,13 +8,11 @@ def get_tiff_compression(tiff_path):
         return tif.pages[0].compression
 
 def sort_key(filename):
-    match = re.match(r'nugget1_nf_layer(\d+)_det(\d+)_50bg_proc.h5', filename)
+    match = re.match(r'my_prefix_layer(\d+)_det(\d+)_50bg_proc.h5', filename)
     if not match:
-        return float('inf')  # 将不符合格式的文件排在最后
+        return float('inf')  # Place files that do not conform to the format at the end
     layer, det = map(int, match.groups())
-    return layer * 2 + det  # 按照 layer 和 det 的数值进行排序
-
-
+    return layer * 2 + det  # Sort according to the numerical values of layer and det
 
 def get_start_num_from_filename(filename):
     match = re.match(r'nugget1_nf_layer(\d+)_det(\d+)_50bg_proc.h5', filename)
@@ -55,13 +53,11 @@ def get_layer_from_filename(filename):
     layer, det = map(int, match.groups())
     return layer
 
-
-
 if __name__ == "__main__":
-    input_folder = '/home/ytian37/data-rhurley6/APS_RAMS_2023Feb/nf'
-    output_folder = '/home/ytian37/data-rhurley6/APS_RAMS_2023Feb/nf/nf_ilastik_proc'
-    input_tiff_folder = '/home/ytian37/data-rhurley6/APS_RAMS_2023Feb/nf/nugget1_nf_int_before'
-    prefix = 'nugget1_nf_int_1degree'
+    input_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/'
+    output_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nf_ilastik_proc'
+    input_tiff_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_before'
+    prefix = 'nugget1_nf_int4'
     os.makedirs(output_folder, exist_ok=True)
 
     selected_layers = [20]  #[0, 1] Change this to the layers you want to process

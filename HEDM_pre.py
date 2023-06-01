@@ -6,6 +6,8 @@ import h5py
 import re
 from tifffile import imread, TiffFile, imsave
 import subprocess
+import yaml
+import sys
 
 class FileConverter:
     def __init__(self, **kwargs):
@@ -340,93 +342,135 @@ def run_conversion(converter_class, **params):
     converter = converter_class(**params)
     converter.convert()
 
+def load_config(file_path):
+    with open(file_path, 'r') as stream:
+        try:
+            return yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+            return None
+
 if __name__ == "__main__":
+
+    if len(sys.argv) != 2:
+        print('Usage: python HEDM_Pre.py <config_file>')
+        sys.exit()
     
-    ####################################
-    # Options: True or False?  
-    bgsub = True
-    ilastik_proc = True
-    generate_hexomap_files = False
-    slice_file = True
-    generate_hexrd_files = True
-    generate_ImageD11_files = False
-    ####################################
- 
-    # ff-HEDM parameters
-    base_dir = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/'
-    # input_file = base_dir + 'nugget1_nf_int_before/nugget1_nf_int4_000000.tif'
-    input_file = base_dir + 'test_nugget1_002_000050.edf.ge5'
-    # image_input_path = '/input_path'  # for future hdf5 input file
-    slice_images = 1
-    empty_images = 1
-    num_images = 200 # number of frames in total in hdf5 file
-    omega = 0.1 # omega rotation angle in degree
-    bg_pct = 50 # background to subtract in percentile
-    bg_nf = num_images-empty_images # number of frames to use to generate dark field image
+    config_file = sys.argv[1]
+    # Load configuration
+    params = load_config(config_file)
+    if params is None:
+        print('Error loading configuration')
+        sys.exit()  # This will stop the execution of the script
 
-    # Parameters for ilastik
-    ilastik_loc = '/Users/yetian/Downloads/ilastik-1.4.0-OSX2.app/Contents/ilastik-release/run_ilastik.sh'
-    ilastik_project_file = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/MyProject_2.ilp'
-    
-    hdf5_file = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_layer20_det0_50bg_proc.h5' 
-    hdf5_file_name = 'nugget1_nf_layer20_det0_50bg_proc.h5'
-    input_hdf5 = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/'
-    hdf5_input_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/'
-    prefix = 'nugget1_nf_int4'
-    tiff_output_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nf_ilastik_proc'
-    # tiff_output_folder = os.path.dirname(ilastik_output_file)
-    # output_offset = self.get_start_num_from_filename(hdf5_file)
-    input_tiff_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_before'
-    os.makedirs(tiff_output_folder, exist_ok=True)
-    selected_layers = [20]  #[0, 1] Change this to the layers you want to process
 
-    start_constant = 0 
-    layers = 1
-    dets = 1
+    # Create output directory
+    os.makedirs(params['tiff_output_folder'], exist_ok=True)
 
-    for layer in range(layers):
-        for det in range(dets):
-            output_file = base_dir + 'nugget1_ff_layer{}_det{}.h5'.format(layer, det)
-            bgsub_h5_file = base_dir + 'nugget1_nf_layer{}_det{}_50bg.h5'.format(layer, det)
-            
-            start_num = start_constant + layer*num_images*omega*dets + det*num_images*omega
-            end_num = start_num + num_images*omega -1
+    # Iterate through layers
+    for layer in range(params['layers']):
+        for det in range(params['dets']):
+            params['output_file'] = params['base_dir'] + 'nugget1_ff_layer{}_det{}.h5'.format(layer, det)
+            params['bgsub_h5_file'] = params['base_dir'] + 'nugget1_nf_layer{}_det{}_50bg.h5'.format(layer, det)
+
+            start_num = params['start_constant'] + layer*params['num_images']*params['omega']*params['dets'] + det*params['num_images']*params['omega']
+            end_num = start_num + params['num_images']*params['omega'] -1
 
             print("Currently executing for layer: {}, det: {}, start_num: {}".format(layer, det, start_num))  # print current layer, det and start_num
+
+            params['start_num'] = start_num
+            params['end_num'] = end_num
+            params['slice_input_file'] = params['bgsub_h5_file'] if params['bgsub'] else params['output_file']
+
+            # Call conversion function with the specific converter class you want to use
+            # replace "YourConverterClass" with the actual class you want to use
+            run_conversion(Convert_to_hedm_formats, **params)
+
+    # ####################################
+    # # Options: True or False?  
+    # bgsub = True
+    # ilastik_proc = True
+    # generate_hexomap_files = False
+    # slice_file = True
+    # generate_hexrd_files = True
+    # generate_ImageD11_files = False
+    # ####################################
+ 
+    # # ff-HEDM parameters
+    # base_dir = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/'
+    # # input_file = base_dir + 'nugget1_nf_int_before/nugget1_nf_int4_000000.tif'
+    # input_file = base_dir + 'test_nugget1_002_000050.edf.ge5'
+    # # image_input_path = '/input_path'  # for future hdf5 input file
+    # slice_images = 1
+    # empty_images = 1
+    # num_images = 200 # number of frames in total in hdf5 file
+    # omega = 0.1 # omega rotation angle in degree
+    # bg_pct = 50 # background to subtract in percentile
+    # bg_nf = num_images-empty_images # number of frames to use to generate dark field image
+
+    # # Parameters for ilastik
+    # ilastik_loc = '/Users/yetian/Downloads/ilastik-1.4.0-OSX2.app/Contents/ilastik-release/run_ilastik.sh'
+    # ilastik_project_file = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/MyProject_2.ilp'
+    
+    # hdf5_file = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_layer20_det0_50bg_proc.h5' 
+    # hdf5_file_name = 'nugget1_nf_layer20_det0_50bg_proc.h5'
+    # input_hdf5 = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/'
+    # hdf5_input_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/'
+    # prefix = 'nugget1_nf_int4'
+    # tiff_output_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nf_ilastik_proc'
+    # # tiff_output_folder = os.path.dirname(ilastik_output_file)
+    # # output_offset = self.get_start_num_from_filename(hdf5_file)
+    # input_tiff_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_before'
+    # os.makedirs(tiff_output_folder, exist_ok=True)
+    # selected_layers = [20]  #[0, 1] Change this to the layers you want to process
+
+    # start_constant = 0 
+    # layers = 1
+    # dets = 1
+
+    # for layer in range(layers):
+    #     for det in range(dets):
+    #         output_file = base_dir + 'nugget1_ff_layer{}_det{}.h5'.format(layer, det)
+    #         bgsub_h5_file = base_dir + 'nugget1_nf_layer{}_det{}_50bg.h5'.format(layer, det)
             
-            params = {
-                'input_file': input_file,
-                'output_file': output_file,
-                'empty_images': empty_images, 
-                'start_num': start_num,
-                'end_num': end_num,
-                'bgsub_h5_file': bgsub_h5_file,
-                'num_images': num_images,
-                'omega': omega,
-                'bg_pct': bg_pct,
-                'bg_nf': bg_nf,
-                'bgsub': bgsub,
-                'ilastik_proc': ilastik_proc,
-                'slice_file': slice_file,
-                'slice_input_file': bgsub_h5_file if bgsub else output_file,
-                'slice_images': slice_images,
-                'ilastik_loc': ilastik_loc,
-                'ilastik_project_file': ilastik_project_file,
-                'generate_hexomap_files': generate_hexomap_files,
-                'hdf5_input_folder': hdf5_input_folder,
-                'prefix': prefix,
-                'tiff_output_folder': tiff_output_folder,
-                'input_tiff_folder': input_tiff_folder,
-                'selected_layers': selected_layers,
-                'input_hdf5': input_hdf5,
-                'hdf5_file_name': hdf5_file_name,
-                'hdf5_file': hdf5_file,
-                'generate_hexrd_files': generate_hexrd_files,
-                'generate_ImageD11_files': generate_ImageD11_files
-            }
+    #         start_num = start_constant + layer*num_images*omega*dets + det*num_images*omega
+    #         end_num = start_num + num_images*omega -1
+
+    #         print("Currently executing for layer: {}, det: {}, start_num: {}".format(layer, det, start_num))  # print current layer, det and start_num
+            
+    #         params = {
+    #             'input_file': input_file,
+    #             'output_file': output_file,
+    #             'empty_images': empty_images, 
+    #             'start_num': start_num,
+    #             'end_num': end_num,
+    #             'bgsub_h5_file': bgsub_h5_file,
+    #             'num_images': num_images,
+    #             'omega': omega,
+    #             'bg_pct': bg_pct,
+    #             'bg_nf': bg_nf,
+    #             'bgsub': bgsub,
+    #             'ilastik_proc': ilastik_proc,
+    #             'slice_file': slice_file,
+    #             'slice_input_file': bgsub_h5_file if bgsub else output_file,
+    #             'slice_images': slice_images,
+    #             'ilastik_loc': ilastik_loc,
+    #             'ilastik_project_file': ilastik_project_file,
+    #             'generate_hexomap_files': generate_hexomap_files,
+    #             'hdf5_input_folder': hdf5_input_folder,
+    #             'prefix': prefix,
+    #             'tiff_output_folder': tiff_output_folder,
+    #             'input_tiff_folder': input_tiff_folder,
+    #             'selected_layers': selected_layers,
+    #             'input_hdf5': input_hdf5,
+    #             'hdf5_file_name': hdf5_file_name,
+    #             'hdf5_file': hdf5_file,
+    #             'generate_hexrd_files': generate_hexrd_files,
+    #             'generate_ImageD11_files': generate_ImageD11_files
+    #         }
 
     # run_conversion(Standardize_format, **params)
     # run_conversion(Subtract_background,  **params)
     # run_conversion(Process_with_ilastik, **params)
-    run_conversion(Convert_to_hedm_formats, **params)
+    # run_conversion(Convert_to_hedm_formats, **params)
 

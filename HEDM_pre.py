@@ -32,7 +32,6 @@ class FileConverter:
         self.empty_images = self.params.get('empty_images', 0)
         self.slice_file = self.params.get('slice_file', False)
         self.slice_images = self.params.get('slice_images', 0)
-        self.slice_input_file = self.params.get('slice_input_file', None)
         self.ilastik_proc = self.params.get('ilastik_proc', True)
         self.ilastik_loc = self.params.get('ilastik_loc')
         self.ilastik_project_file = self.params.get('ilastik_project_file', None)
@@ -121,7 +120,13 @@ class FileConverter:
             data = np.fromfile(f, dtype=np.uint16)
 
         # Convert all binary data to an array of images.
-        image_data = np.reshape(data, (self.num_images, height, width))
+        # image_data = np.reshape(data, (self.num_images, height, width))
+
+        try:
+            image_data = np.reshape(data, (self.num_images, height, width))
+        except ValueError:
+            raise ValueError("Please input the right total number of frames: num_images")
+
 
         # Remove the specified number of empty images
         if self.empty_images > 0:
@@ -255,7 +260,7 @@ class FileConverter:
         format='hdf5',
         path='/',
         # dataname='exported_data'
-        dataname='imageseries/images' 
+        dataname='images' 
         )
         # Input of omega meta data
         nf = self.num_images  #720
@@ -279,6 +284,22 @@ class FileConverter:
         # Save the processed imageseries in npz format
         print(f"Writing npz file (may take a while): {output_file}")
         imageseries.write(pimgs, output_file, 'frame-cache', threshold=5, cache_file=output_file)
+    
+    def standard_hdf5(self, input_filepath, input_dataset_name, output_dataset_name):
+        # Temporary output file path
+        output_filepath = input_filepath + '_temp'
+        # Open the original file
+        with h5py.File(input_filepath, 'r') as f:
+            data = f[input_dataset_name][:]  # load the data into memory
+        # Remove the last dimension
+        data_squeezed = np.squeeze(data, axis=-1)
+        # Save the squeezed data to a new HDF5 file
+        with h5py.File(output_filepath, 'w') as f:
+            f.create_dataset(output_dataset_name, data=data_squeezed)
+        # Delete the original file
+        os.remove(input_filepath)
+        # Rename the temporary output file to the original file name
+        os.rename(output_filepath, input_filepath)
 
 class Standardize_format(FileConverter):
     def convert(self):
@@ -314,6 +335,7 @@ class Process_with_ilastik(FileConverter):
             print("Processing with ilastik...")
             base_name, extension = os.path.splitext(self.bgsub_h5) 
             output_file = f"{base_name}_ilastik_proc{extension}"
+            ########### single task
             subprocess.run([self.ilastik_loc,
                 '--headless',
                 f'--cutout_subregion=[(0,0,0,0),({self.bg_nf},2048,2048,1)]',
@@ -322,7 +344,29 @@ class Process_with_ilastik(FileConverter):
                 f'--output_filename_format={output_file}',
                 f'--project={self.ilastik_project_file}',
                 '--export_source=Probabilities',
-                '--raw_data='+f'{self.bgsub_h5}'])
+                '--raw_data='+f'{self.bgsub_h5}']) 
+            self.standard_hdf5(output_file, self.image_ilastik_path, self.image_default_path)
+
+            # ############## mpirun multi-tasks
+            # mpiexec_command = [
+            #     "mpirun", "-n", "4",
+            #     self.ilastik_loc,
+            #     "--headless",
+            #     "--distributed",
+            #     "--distributed-block-roi", '{"x": 2048, "y": 2048, "z": 1, "c": 2}',
+            #     f"--cutout_subregion=[(0,0,0,0),({self.bg_nf},2048,2048,1)]",
+            #     "--pipeline_result_drange=(0.0,1.0)",
+            #     "--export_drange=(0,100)",
+            #     f"--output_filename_format={output_file}",
+            #     f"--project={self.ilastik_project_file}",
+            #     "--export_source=Probabilities",
+            #     "--raw_data=" + f"{self.bgsub_h5}"
+            # ]
+            # subprocess.run(mpiexec_command)
+            # ####################
+        if self.slice_file:
+            print("Generating sliced ilastik processed data...")
+            self.hdf5slice(output_file, self.image_default_path)
 
 class Convert_to_hedm_formats(FileConverter):
     def convert(self):
@@ -363,6 +407,8 @@ if __name__ == "__main__":
         print('Error loading configuration')
         sys.exit()  # This will stop the execution of the script
 
+    # Calculate bg_nf and add it to the params
+    params['bg_nf'] = params['num_images'] - params['empty_images']
 
     # Create output directory
     os.makedirs(params['tiff_output_folder'], exist_ok=True)
@@ -380,97 +426,10 @@ if __name__ == "__main__":
 
             params['start_num'] = start_num
             params['end_num'] = end_num
-            params['slice_input_file'] = params['bgsub_h5_file'] if params['bgsub'] else params['output_file']
 
             # Call conversion function with the specific converter class you want to use
-            # replace "YourConverterClass" with the actual class you want to use
+            # run_conversion(Standardize_format, **params)
+            # run_conversion(Subtract_background,  **params)
+            # run_conversion(Process_with_ilastik, **params)
             run_conversion(Convert_to_hedm_formats, **params)
-
-    # ####################################
-    # # Options: True or False?  
-    # bgsub = True
-    # ilastik_proc = True
-    # generate_hexomap_files = False
-    # slice_file = True
-    # generate_hexrd_files = True
-    # generate_ImageD11_files = False
-    # ####################################
- 
-    # # ff-HEDM parameters
-    # base_dir = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/'
-    # # input_file = base_dir + 'nugget1_nf_int_before/nugget1_nf_int4_000000.tif'
-    # input_file = base_dir + 'test_nugget1_002_000050.edf.ge5'
-    # # image_input_path = '/input_path'  # for future hdf5 input file
-    # slice_images = 1
-    # empty_images = 1
-    # num_images = 200 # number of frames in total in hdf5 file
-    # omega = 0.1 # omega rotation angle in degree
-    # bg_pct = 50 # background to subtract in percentile
-    # bg_nf = num_images-empty_images # number of frames to use to generate dark field image
-
-    # # Parameters for ilastik
-    # ilastik_loc = '/Users/yetian/Downloads/ilastik-1.4.0-OSX2.app/Contents/ilastik-release/run_ilastik.sh'
-    # ilastik_project_file = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/MyProject_2.ilp'
-    
-    # hdf5_file = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_layer20_det0_50bg_proc.h5' 
-    # hdf5_file_name = 'nugget1_nf_layer20_det0_50bg_proc.h5'
-    # input_hdf5 = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/'
-    # hdf5_input_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/'
-    # prefix = 'nugget1_nf_int4'
-    # tiff_output_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nf_ilastik_proc'
-    # # tiff_output_folder = os.path.dirname(ilastik_output_file)
-    # # output_offset = self.get_start_num_from_filename(hdf5_file)
-    # input_tiff_folder = '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_before'
-    # os.makedirs(tiff_output_folder, exist_ok=True)
-    # selected_layers = [20]  #[0, 1] Change this to the layers you want to process
-
-    # start_constant = 0 
-    # layers = 1
-    # dets = 1
-
-    # for layer in range(layers):
-    #     for det in range(dets):
-    #         output_file = base_dir + 'nugget1_ff_layer{}_det{}.h5'.format(layer, det)
-    #         bgsub_h5_file = base_dir + 'nugget1_nf_layer{}_det{}_50bg.h5'.format(layer, det)
-            
-    #         start_num = start_constant + layer*num_images*omega*dets + det*num_images*omega
-    #         end_num = start_num + num_images*omega -1
-
-    #         print("Currently executing for layer: {}, det: {}, start_num: {}".format(layer, det, start_num))  # print current layer, det and start_num
-            
-    #         params = {
-    #             'input_file': input_file,
-    #             'output_file': output_file,
-    #             'empty_images': empty_images, 
-    #             'start_num': start_num,
-    #             'end_num': end_num,
-    #             'bgsub_h5_file': bgsub_h5_file,
-    #             'num_images': num_images,
-    #             'omega': omega,
-    #             'bg_pct': bg_pct,
-    #             'bg_nf': bg_nf,
-    #             'bgsub': bgsub,
-    #             'ilastik_proc': ilastik_proc,
-    #             'slice_file': slice_file,
-    #             'slice_input_file': bgsub_h5_file if bgsub else output_file,
-    #             'slice_images': slice_images,
-    #             'ilastik_loc': ilastik_loc,
-    #             'ilastik_project_file': ilastik_project_file,
-    #             'generate_hexomap_files': generate_hexomap_files,
-    #             'hdf5_input_folder': hdf5_input_folder,
-    #             'prefix': prefix,
-    #             'tiff_output_folder': tiff_output_folder,
-    #             'input_tiff_folder': input_tiff_folder,
-    #             'selected_layers': selected_layers,
-    #             'input_hdf5': input_hdf5,
-    #             'hdf5_file_name': hdf5_file_name,
-    #             'hdf5_file': hdf5_file,
-    #             'generate_hexrd_files': generate_hexrd_files,
-    #             'generate_ImageD11_files': generate_ImageD11_files
-    #         }
-
-    # run_conversion(Standardize_format, **params)
-    # run_conversion(Subtract_background,  **params)
-    # run_conversion(Process_with_ilastik, **params)
-    # run_conversion(Convert_to_hedm_formats, **params)
 

@@ -12,6 +12,8 @@ generate_hexomap_files: False
 generate_hexrd_files: True
 # Generate ImageD11 .flt files
 generate_ImageD11_files: False
+# Parallel computing or not
+use_parallel_computing: False
 #########################
 
 # Working dir

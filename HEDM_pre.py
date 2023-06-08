@@ -49,6 +49,7 @@ class FileConverter:
         self.generate_hexrd_files = self.params.get('generate_hexrd_files', True)
         self.generate_ImageD11_files = self.params.get('generate_ImageD11_files', True)
         self.flip_option = self.params.get('flip_option', None)
+        self.use_parallel_computing = self.params.get('use_parallel_computing', False)
 
     def convert(self, *args, **kwargs):
         raise NotImplementedError("Subclass should implement this method")
@@ -337,35 +338,37 @@ class Process_with_ilastik(FileConverter):
             print("Processing with ilastik...")
             base_name, extension = os.path.splitext(self.bgsub_h5) 
             output_file = f"{base_name}_ilastik_proc{extension}"
-            ########### single task
-            subprocess.run([self.ilastik_loc,
-                '--headless',
-                f'--cutout_subregion=[(0,0,0,0),({self.bg_nf},2048,2048,1)]',
-                '--pipeline_result_drange=(0.0,1.0)',
-                '--export_drange=(0,100)',
-                f'--output_filename_format={output_file}',
-                f'--project={self.ilastik_project_file}',
-                '--export_source=Probabilities',
-                '--raw_data='+f'{self.bgsub_h5}']) 
+            
+            if self.use_parallel_computing:     # If parallel computing is set to True in the config
+                print("Running in parallel mode...")
+                mpiexec_command = [
+                    "mpirun", "-n", "4",
+                    self.ilastik_loc,
+                    "--headless",
+                    "--distributed",
+                    "--distributed-block-roi", '{"x": 2048, "y": 2048, "z": 1, "c": 2}',
+                    f"--cutout_subregion=[(0,0,0,0),({self.bg_nf},2048,2048,1)]",
+                    "--pipeline_result_drange=(0.0,1.0)",
+                    "--export_drange=(0,100)",
+                    f"--output_filename_format={output_file}",
+                    f"--project={self.ilastik_project_file}",
+                    "--export_source=Probabilities",
+                    "--raw_data=" + f"{self.bgsub_h5}"
+                ]
+                subprocess.run(mpiexec_command)
+            else:  # Otherwise, run the non-parallel code
+                subprocess.run([self.ilastik_loc,
+                    '--headless',
+                    f'--cutout_subregion=[(0,0,0,0),({self.bg_nf},2048,2048,1)]',
+                    '--pipeline_result_drange=(0.0,1.0)',
+                    '--export_drange=(0,100)',
+                    f'--output_filename_format={output_file}',
+                    f'--project={self.ilastik_project_file}',
+                    '--export_source=Probabilities',
+                    '--raw_data='+f'{self.bgsub_h5}']) 
+            
             self.standard_hdf5(output_file, self.image_ilastik_path, self.image_default_path)
-
-            # ############## mpirun multi-tasks
-            # mpiexec_command = [
-            #     "mpirun", "-n", "4",
-            #     self.ilastik_loc,
-            #     "--headless",
-            #     "--distributed",
-            #     "--distributed-block-roi", '{"x": 2048, "y": 2048, "z": 1, "c": 2}',
-            #     f"--cutout_subregion=[(0,0,0,0),({self.bg_nf},2048,2048,1)]",
-            #     "--pipeline_result_drange=(0.0,1.0)",
-            #     "--export_drange=(0,100)",
-            #     f"--output_filename_format={output_file}",
-            #     f"--project={self.ilastik_project_file}",
-            #     "--export_source=Probabilities",
-            #     "--raw_data=" + f"{self.bgsub_h5}"
-            # ]
-            # subprocess.run(mpiexec_command)
-            # ####################
+    
         if self.slice_file:
             print("Generating sliced ilastik processed data...")
             self.hdf5slice(output_file, self.image_default_path)
@@ -432,7 +435,7 @@ if __name__ == "__main__":
 
             # Call conversion function with the specific converter class you want to use
             # run_conversion(Standardize_format, **params)
-            run_conversion(Subtract_background,  **params)
+            # run_conversion(Subtract_background,  **params)
             run_conversion(Process_with_ilastik, **params)
             run_conversion(Convert_to_hedm_formats, **params)
 

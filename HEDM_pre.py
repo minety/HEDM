@@ -47,7 +47,8 @@ class FileConverter:
         self.hdf5_file_name = self.params.get('hdf5_file_name', None)
         self.hdf5_file = self.params.get('hdf5_file', None)
         self.generate_hexrd_files = self.params.get('generate_hexrd_files', True)
-        self.generate_ImageD11_files = self.params.get('generate_ImageD11_files', True) 
+        self.generate_ImageD11_files = self.params.get('generate_ImageD11_files', True)
+        self.flip_option = self.params.get('flip_option', None)
 
     def convert(self, *args, **kwargs):
         raise NotImplementedError("Subclass should implement this method")
@@ -252,15 +253,15 @@ class FileConverter:
         layer, det = map(int, match.groups())
         return layer
     
-    def hdf5_to_npz(self):
-        base_name, extension = os.path.splitext(self.bgsub_h5) 
+    def hdf5_to_npz(self, flip_option):
+        base_name, extension = os.path.splitext(self.bgsub_h5)
         input_file = f"{base_name}_ilastik_proc{extension}"
         ims = imageseries.open(
-        input_file,
-        format='hdf5',
-        path='/',
-        # dataname='exported_data'
-        dataname='images' 
+            input_file,
+            format='hdf5',
+            path='/',
+            # dataname='exported_data'
+            dataname='images' 
         )
         # Input of omega meta data
         nf = self.num_images  #720
@@ -277,13 +278,14 @@ class FileConverter:
 
         # Now, apply the processing options
         ProcessedIS = imageseries.process.ProcessedImageSeries
-        ops = [('dark', dark), ('flip', None)] # None, 'h', 'v', etc.
+        ops = [('dark', dark), ('flip', flip_option)] # None, 'h', 'v', etc.
         pimgs = ProcessedIS(ims, ops)
 
         output_file = f"{base_name}_hexrd.npz"
         # Save the processed imageseries in npz format
         print(f"Writing npz file (may take a while): {output_file}")
         imageseries.write(pimgs, output_file, 'frame-cache', threshold=5, cache_file=output_file)
+
     
     def standard_hdf5(self, input_filepath, input_dataset_name, output_dataset_name):
         # Temporary output file path
@@ -375,7 +377,8 @@ class Convert_to_hedm_formats(FileConverter):
             self.hdf5_to_tiff()
         elif self.generate_hexrd_files:
             print("Generating hexrd .npz files...")
-            self.hdf5_to_npz()  # Replace with the actual method to generate hexrd files
+            self.hdf5_to_npz(self.flip_option)  # Replace with the actual method to generate hexrd files
+            print(f"HEXRD flip option is '{self.flip_option}'.")
         elif self.generate_ImageD11_files:
             print("Generating ImageD11 .flt files...")
             self.another_method()  # Replace with the actual method to generate ImageD11 files
@@ -429,7 +432,7 @@ if __name__ == "__main__":
 
             # Call conversion function with the specific converter class you want to use
             # run_conversion(Standardize_format, **params)
-            # run_conversion(Subtract_background,  **params)
-            # run_conversion(Process_with_ilastik, **params)
+            run_conversion(Subtract_background,  **params)
+            run_conversion(Process_with_ilastik, **params)
             run_conversion(Convert_to_hedm_formats, **params)
 

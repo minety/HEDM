@@ -265,7 +265,7 @@ class FileConverter:
             dataname='images' 
         )
         # Input of omega meta data
-        nf = self.num_images  #720
+        nf = self.bg_nf  #720
         omega = self.omega
         omw = OmegaWedges(nf)
         omw.addwedge(0, nf*omega, nf) 
@@ -436,6 +436,6 @@ if __name__ == "__main__":
             # Call conversion function with the specific converter class you want to use
             # run_conversion(Standardize_format, **params)
             # run_conversion(Subtract_background,  **params)
-            run_conversion(Process_with_ilastik, **params)
+            # run_conversion(Process_with_ilastik, **params)
             run_conversion(Convert_to_hedm_formats, **params)
 

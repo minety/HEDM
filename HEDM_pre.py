@@ -342,7 +342,7 @@ class Process_with_ilastik(FileConverter):
             if self.use_parallel_computing:     # If parallel computing is set to True in the config
                 print("Running in parallel mode...")
                 mpiexec_command = [
-                    "mpirun", "-n", "4",
+                    "mpirun", "-n", "12",
                     self.ilastik_loc,
                     "--headless",
                     "--distributed",
@@ -357,7 +357,8 @@ class Process_with_ilastik(FileConverter):
                 ]
                 subprocess.run(mpiexec_command)
             else:  # Otherwise, run the non-parallel code
-                subprocess.run([self.ilastik_loc,
+                subprocess.run([
+                    self.ilastik_loc,
                     '--headless',
                     f'--cutout_subregion=[(0,0,0,0),({self.bg_nf},2048,2048,1)]',
                     '--pipeline_result_drange=(0.0,1.0)',
@@ -365,7 +366,8 @@ class Process_with_ilastik(FileConverter):
                     f'--output_filename_format={output_file}',
                     f'--project={self.ilastik_project_file}',
                     '--export_source=Probabilities',
-                    '--raw_data='+f'{self.bgsub_h5}']) 
+                    '--raw_data='+f'{self.bgsub_h5}'
+                ], env={'LAZYFLOW_THREADS': '6'})
             
             self.standard_hdf5(output_file, self.image_ilastik_path, self.image_default_path)
     
@@ -436,6 +438,6 @@ if __name__ == "__main__":
             # Call conversion function with the specific converter class you want to use
             # run_conversion(Standardize_format, **params)
             # run_conversion(Subtract_background,  **params)
-            # run_conversion(Process_with_ilastik, **params)
+            run_conversion(Process_with_ilastik, **params)
             run_conversion(Convert_to_hedm_formats, **params)
 

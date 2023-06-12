@@ -7,7 +7,7 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 setup(
     name='hedm_pre',
-    version='0.0.5',
+    version='0.1.2',
     author='Ye Tian',
     author_email='ytian37@jhu.edu',
     entry_points={
@@ -28,8 +28,5 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
     ],
-    python_requires='>=3.8',
-    install_requires=[
-        'numpy'
-    ]
+    python_requires='>=3.8'
 )

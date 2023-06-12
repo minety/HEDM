@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: hedm-pre
-Version: 0.0.5
+Version: 0.1.2
 Summary: Tools for pre-processing data for High Energy Diffraction Microscopy (HEDM) analysis
 Home-page: https://github.com/minety/HEDM
 Author: Ye Tian
@@ -26,6 +26,12 @@ This Python package provides tools for pre-processing data for High Energy Diffr
 - Conversion to HEDM formats
 
 ## Installation
+
+Before installing this package, you need to install hexrd first. Follow the link for the guide, https://github.com/HEXRD/hexrd.
+
+Then you need to downgrade numpy to version: numpy-1.22.4:
+
+pip install numpy==1.22.4
 
 Use pip to install this package:
 

@@ -11,6 +11,12 @@ This Python package provides tools for pre-processing data for High Energy Diffr
 
 ## Installation
 
+Before installing this package, you need to install hexrd first. Follow the link for the guide, https://github.com/HEXRD/hexrd.
+
+Then you need to downgrade numpy to version: numpy-1.22.4:
+
+pip install numpy==1.22.4
+
 Use pip to install this package:
 
 pip install hedm_pre

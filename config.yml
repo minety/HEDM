@@ -32,7 +32,7 @@ omega: 0.1
 bg_pct: 50
 flip_option: 'h'  # 'v', None, 'hv'
 # ilastik installed location
-ilastik_loc: '/Users/yetian/Downloads/ilastik-1.4.0-OSX2.app/Contents/ilastik-release/run_ilastik.sh'
+ilastik_loc: '/Applications/ilastik-1.4.0-OSX2.app/Contents/ilastik-release/run_ilastik.sh'
 # ilastik project file which need user manually generate from ilastik GUI version
 ilastik_project_file: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nugget1_nf_layer0_det0_50bg.ilp'
 # For file name formating

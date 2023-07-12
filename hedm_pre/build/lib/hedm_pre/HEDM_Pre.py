@@ -8,6 +8,7 @@ from tifffile import imread, TiffFile, imsave
 import subprocess
 import yaml
 import sys
+import argparse
 
 class FileConverter:
     def __init__(self, **kwargs):
@@ -402,13 +403,19 @@ def load_config(file_path):
             print(exc)
             return None
 
+
 def main():
-    if len(sys.argv) != 2:
-        print('Usage: python HEDM_Pre.py <config_file>')
+    parser = argparse.ArgumentParser(description='Process some parameters.')
+    parser.add_argument('command', choices=['stand', 'sub', 'ilastik', 'hedm_formats', 'all'])
+    parser.add_argument('config_file')
+    args = parser.parse_args()
+
+    if len(sys.argv) != 3:
+        print('Usage: python HEDM_Pre.py <command> <config_file>')
         sys.exit()
-    
-    config_file = sys.argv[1]
+
     # Load configuration
+    config_file = args.config_file
     params = load_config(config_file)
     if params is None:
         print('Error loading configuration')
@@ -435,10 +442,20 @@ def main():
             params['end_num'] = end_num
 
             # Call conversion function with the specific converter class you want to use
-            # run_conversion(Standardize_format, **params)
-            # run_conversion(Subtract_background,  **params)
-            run_conversion(Process_with_ilastik, **params)
-            run_conversion(Convert_to_hedm_formats, **params)
+            if args.command == 'stand':
+                run_conversion(Standardize_format, **params)
+            elif args.command == 'sub':
+                run_conversion(Subtract_background,  **params)
+            elif args.command == 'ilastik':
+                run_conversion(Process_with_ilastik, **params)
+            elif args.command == 'hedm_formats':
+                run_conversion(Convert_to_hedm_formats, **params)
+            elif args.command == 'all':
+                run_conversion(Standardize_format, **params)
+                run_conversion(Subtract_background,  **params)
+                run_conversion(Process_with_ilastik, **params)
+                run_conversion(Convert_to_hedm_formats, **params)
 
 if __name__ == "__main__":
     main()
+

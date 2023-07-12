@@ -19,6 +19,7 @@ use_parallel_computing: False
 # Working dir
 base_dir: '/Users/yetian/Desktop/Ryan_test_data/HEDM/'
 # input_file can be several formats including .ge2/ge3/ge5, .tif/tiff and hdf5/h5
+sample_name: nugget1
 input_file: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/test_nugget1_002_000050.edf.ge5'
 # Number of example dataset sliced from each step
 slice_images: 0

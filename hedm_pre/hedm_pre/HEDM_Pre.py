@@ -430,8 +430,8 @@ def main():
     # Iterate through layers
     for layer in range(params['layers']):
         for det in range(params['dets']):
-            params['output_file'] = params['base_dir'] + 'nugget1_ff_layer{}_det{}.h5'.format(layer, det)
-            params['bgsub_h5_file'] = params['base_dir'] + 'nugget1_nf_layer{}_det{}_50bg.h5'.format(layer, det)
+            params['output_file'] = params['base_dir'] + '{}_layer{}_det{}.h5'.format(params['sample_name'], layer, det)
+            params['bgsub_h5_file'] = params['base_dir'] + '{}_layer{}_det{}_50bg.h5'.format(params['sample_name'], layer, det)
 
             start_num = params['start_constant'] + layer*params['num_images']*params['omega']*params['dets'] + det*params['num_images']*params['omega']
             end_num = start_num + params['num_images']*params['omega'] -1

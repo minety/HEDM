@@ -21,8 +21,6 @@ base_dir: '/Users/yetian/Desktop/Ryan_test_data/HEDM/'
 # input_file can be several formats including .ge2/ge3/ge5, .tif/tiff and hdf5/h5
 sample_name: nugget1
 input_file: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/test_nugget1_002_000050.edf.ge5'
-# Number of example dataset sliced from each step
-slice_images: 0
 # ff-HEDM may have empty frames to obtain data during the unstable stage of the motor
 empty_images: 0
 # number of frames in total including empty frames
@@ -50,3 +48,7 @@ input_tiff_folder: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nug
 selected_layers: [20]
 start_constant: 0
 
+#### Slice HDF5 file
+slice_input_file: 'nugget1_nf_layer0_det0_50bg.h5'
+input_file_path: '/imageseries/images'
+slice_images: 1

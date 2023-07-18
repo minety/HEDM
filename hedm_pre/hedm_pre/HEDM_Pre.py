@@ -391,6 +391,12 @@ class Convert_to_hedm_formats(FileConverter):
         else:
             print("None of the generate flags is set to True. No action will be performed.")
 
+
+class SliceHDF5(FileConverter):
+    def convert(self):
+        print("Slicing HDF5 file...")
+        self.hdf5slice(self.params.get('slice_input_file'), self.params.get('input_file_path'))
+
 def run_conversion(converter_class, **params):
     converter = converter_class(**params)
     converter.convert()
@@ -406,7 +412,7 @@ def load_config(file_path):
 
 def main():
     parser = argparse.ArgumentParser(description='Process some parameters.')
-    parser.add_argument('command', choices=['stand', 'sub', 'ilastik', 'hedm_formats', 'all'])
+    parser.add_argument('command', choices=['stand', 'sub', 'ilastik', 'hedm_formats', 'all', 'slice'])
     parser.add_argument('config_file')
     args = parser.parse_args()
 
@@ -441,8 +447,10 @@ def main():
             params['start_num'] = start_num
             params['end_num'] = end_num
 
-            # Call conversion function with the specific converter class you want to use
-            if args.command == 'stand':
+        # Call conversion function with the specific converter class you want to use
+            if args.command == 'slice':
+                run_conversion(SliceHDF5, **params)
+            elif args.command == 'stand':
                 run_conversion(Standardize_format, **params)
             elif args.command == 'sub':
                 run_conversion(Subtract_background,  **params)

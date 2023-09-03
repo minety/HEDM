@@ -1,2 +1,0 @@
-[console_scripts]
-hedm_pre = hedm_pre.HEDM_Pre:main

@@ -1,0 +1,2 @@
+[console_scripts]
+HEDM_Toolkit = HEDM_Toolkit.HEDM_Toolkit:main

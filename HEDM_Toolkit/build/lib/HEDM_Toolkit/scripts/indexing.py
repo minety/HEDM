@@ -2,25 +2,30 @@ import sys, random
 import os
 from ImageD11.grid_index_parallel import grid_index_parallel
 
-
 if __name__=="__main__":
     # You need this idiom to use multiprocessing on windows (script is imported again)
+    
+    symmetry = sys.argv[9]
+    ring1 = list(map(int, sys.argv[10].split(',')))
+    ring2 = list(map(int, sys.argv[11].split(',')))
+    
     gridpars = {
-        'DSTOL' : 0.004, #0.003, # tol in 1/d
-        'OMEGAFLOAT' : 0.13, # 0.025
-        'COSTOL' : 0.002, # was 0.002
-        'NPKS' : int(  sys.argv[4] ),
-        'TOLSEQ' : [float(sys.argv[6]), float(sys.argv[7])], # first item was 0.02, 0.015, 0.01 #[0] is hkl tolerance. Generally reduce to reduce grains
-        'SYMMETRY' : "hexagonal",
-        'RING1'  : [1,2], #note: rings start from 0!
-        'RING2' : [1,2,4,5,6,7,8,9,11,12,14],
+        'DSTOL' : 0.004,
+        'OMEGAFLOAT' : 0.13,
+        'COSTOL' : 0.002,
+        'NPKS' : int(sys.argv[4]),
+        'TOLSEQ' : [float(sys.argv[6]), float(sys.argv[7])],
+        'SYMMETRY' : symmetry,
+        'RING1'  : ring1,
+        'RING2' : ring2,
         'NUL' : True,
-        'FITPOS' : True, # Does a preliminary fitting of the grains
-        'tolangle' : 1.0, #0.25, # Turn down to increase grains
-        'toldist' : int(sys.argv[8]), #100., # Turn down to increase grains
-        'NPROC' : 48, # guess from cpu_count
-        'NTHREAD' : 1 ,
+        'FITPOS' : True,
+        'tolangle' : 1.0,
+        'toldist' : int(sys.argv[8]),
+        'NPROC' : None,
+        'NTHREAD' : 1,
     }
+
     try:
         gridpars['NUNIQ'] = int(sys.argv[5])
     except:

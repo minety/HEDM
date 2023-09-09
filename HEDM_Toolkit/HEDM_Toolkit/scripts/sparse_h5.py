@@ -104,7 +104,8 @@ def init(self):
             self.CORES = os.cpu_count() - 1
     self.CORES = max(1, self.CORES)
     print("# Aiming to use", self.CORES, "processes")
-    outh5 = os.path.split(self.HNAME)[-1].replace(".h5", f"_sparse.h5")
+    threshold_value = int(sys.argv[3])
+    outh5 = os.path.split(self.HNAME)[-1].replace(".h5", f"_t{threshold_value}_sparse.h5")
     self.OUTNAME = os.path.join(self.OUTPATH, outh5)
     print("# Output to ", self.OUTNAME)
     try:
@@ -328,7 +329,13 @@ def segment_scans( fname,
                 hout = h5py.File(fname,'r')
                 print(hout.keys())
                 print(fname)
-                frms = hout['images']
+                #frms = hout['images']
+                if 'images' in hout:
+                    frms = hout['images']
+                elif 'imageseries/images' in hout:
+                    frms = hout['imageseries/images']
+                else:
+                    raise ValueError("Neither 'images' nor 'imageseries/images' paths found in the HDF5 file.")
                 #frms = np.swapaxes(frms,1,2)
                 #frms = hout['flyscan_00001/scan_data/images']
                 row = g.create_dataset("row", (1,), dtype=np.uint16, **opts)

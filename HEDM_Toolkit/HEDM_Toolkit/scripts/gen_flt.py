@@ -18,6 +18,15 @@ def moments( bfrm ):
     a = I / n
     return s, f, a, n
 
+def get_scan_path(hin):
+    """Get the appropriate scan path."""
+    if 'images' in hin:
+        return 'images'
+    elif 'imageseries/images' in hin:
+        return 'imageseries/images'
+    else:
+        raise ValueError("Neither 'images' nor 'imageseries/images' paths found in the HDF5 file.")
+
 def newpks(hf, scans=None, npixels=1, monitor=None, monval=1e3, ):
     """ do a peak search in a sparse frame series """
     titles = 's_raw f_raw avg_intensity Number_of_pixels sum_intensity omega dty'.split()
@@ -30,8 +39,8 @@ def newpks(hf, scans=None, npixels=1, monitor=None, monval=1e3, ):
         if scans is None:
             scans = list(hin['/'])
         for scan in scans:
-            scan = 'images'
-            gin = hin[scan]
+            scan_path = get_scan_path(hin)  # Use the function we defined earlier
+            gin = hin[scan_path]
             shape = gin.attrs['shape0'], gin.attrs['shape1']
             # import pdb; pdb.set_trace()
             omega = gin['measurement/diffrz'][:]
@@ -52,8 +61,6 @@ def newpks(hf, scans=None, npixels=1, monitor=None, monval=1e3, ):
                 f.set_pixels("intensity", sig[iprev:inext] )
                 sparseframe.sparse_connected_pixels(f, threshold=0.1)
                 pks = sparseframe.sparse_moments(f, "intensity", "connectedpixels")
-                #sparseframe.sparse_localmax(f)
-                #pks = sparseframe.sparse_moments(f, "intensity", "localmax")
                 s,f,a,n = moments( pks )
                 m = n > npixels
                 c['s_raw'].append( s[m] )
@@ -99,17 +106,16 @@ def sortedscans( hfo ):
     #bg_frames = h[scan]['measurement/frelon3'][::100]
 
 with h5py.File(outname, 'r') as hin:
-    #frm = hin[scan]['measurement/frelon3'][fnum]
-    im = hin['images']
-    #im3 = np.swapaxes(im,1,2)
+    scan_path = get_scan_path(hin)
+    im = hin[scan_path]
     frm = im[fnum,:,:]
 
 with h5py.File(sparsename,"r") as hin:
-    scan='images'
-    print(list(hin[scan]), dict(hin[scan].attrs))
-    print(list(hin[scan]['instrument']))
+    scan_path = get_scan_path(hin)
+    print(list(hin[scan_path]), dict(hin[scan_path].attrs))
+    print(list(hin[scan_path]['instrument']))
     f = fnum
-    nnz = hin[scan]['nnz'][:]
+    nnz = hin[scan_path]['nnz'][:]
     ipt = np.cumsum(nnz)
     # num_frames = len(hin[scan]['frame'])
 
@@ -124,7 +130,7 @@ with h5py.File(sparsename,"r") as hin:
 
     s = ipt[f-1]
     e = ipt[f]
-    g = hin[scan]
+    g = hin[scan_path]
     sh = g.attrs['shape0'],g.attrs['shape1']
     spf = sparse_frame( g['row'][s:e], g['col'][s:e], shape = (g.attrs['shape0'],g.attrs['shape1']),
                        pixels={'intensity': g['intensity'][s:e]})
@@ -160,12 +166,9 @@ sparsename_load = sparsename
 
 # Open hdf5 file of sparse peaks
 with h5py.File(sparsename_load,'r') as h:
-    #scans_load = sortedscans( h )
-    #for scan in scans_load:
-    scans = 'images'
-    scans_load = 'images'
-    #r = h[scan]['measurement/diffrz'][()]
-    #print(scan,h[scan]['instrument/positioners/diffty'][()], r[0])
+    scan_path = get_scan_path(h)
+    scans = scan_path
+    scans_load = scan_path
 
 print('scans_load='+scans_load)
 pks_load = newpks(sparsename_load, scans=scans_load, npixels=2, monitor=None)

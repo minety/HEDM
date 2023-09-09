@@ -1,2 +1,3 @@
 [console_scripts]
 HEDM_Toolkit = HEDM_Toolkit.HEDM_Toolkit:main
+copy_demo = HEDM_Toolkit.utilities:copy_demo_func

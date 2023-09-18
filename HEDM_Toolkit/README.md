@@ -1,5 +1,3 @@
----
-
 # HEDM-Toolkit
 
 HEDM-Toolkit is a comprehensive tool designed to integrate major HEDM resources available in the market. Its main objective is to streamline the pre-processing, intermediate processing, and post-processing steps of HEDM data. This toolkit was developed from the perspective of an experienced user, aiming to address the inconsistency of data standards across different synchrotron radiation sources. It facilitates users in comparing the strengths and weaknesses of mainstream software. One of the most significant features of this toolkit is the integration of AI capabilities (currently utilizing ilastik; future upgrades may incorporate or extend to deep learning). This aids in tackling challenging issues, especially AI-enhanced processing of data characterized by relatively high strain, streak-like patterns, and highly overlapping data.

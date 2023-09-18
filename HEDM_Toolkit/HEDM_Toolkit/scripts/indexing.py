@@ -8,10 +8,11 @@ if __name__=="__main__":
     symmetry = sys.argv[9]
     ring1 = list(map(int, sys.argv[10].split(',')))
     ring2 = list(map(int, sys.argv[11].split(',')))
-    tolangle = float(sys.argv[12])  # New external input
-    r = int(sys.argv[13])           # New external input for radius of cylinder
-    r2 = int(sys.argv[14])          # New external input for beam height/2
-    
+    tolangle = float(sys.argv[12])  # Tolerance for rotation angle
+    r = int(sys.argv[13])           # Radius of cylinder
+    r2 = int(sys.argv[14])/2        # Beam height/2
+    r2 = int(r2)
+ 
     gridpars = {
         'DSTOL' : 0.004,
         'OMEGAFLOAT' : 0.13,

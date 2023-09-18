@@ -78,7 +78,11 @@ class HEDM_Toolkit:
         self.frame_number = self.params.get('frame_number', 0)
         self.proc_file = self.params.get('proc_file', None)
         self.raw_h5file = self.params.get('raw_h5file', None)
-        self.output_png = self.params.get('output_png', None) 
+        self.output_png = self.params.get('output_png', None)
+        self.tolangle = self.params.get('Tolangle', 1)
+        self.r = self.params.get('Cylinder_radius', 800) 
+        self.h = self.params.get('Search_height', 500) 
+
 
     def convert(self, *args, **kwargs):
         raise NotImplementedError("Subclass should implement this method")
@@ -230,7 +234,7 @@ class HEDM_Toolkit:
         nf = self.num_images  #720
         omega = self.omega
         omw = OmegaWedges(nf)
-        omw.addwedge(0, nf*omega, nf) 
+        omw.addwedge(0, nf*omega, nf)
         ims.metadata['omega'] = omw.omegas
 
         # Make dark image from first 100 frames
@@ -494,6 +498,11 @@ class HEDM_Toolkit:
         ring1 = ",".join(map(str, self.ring1))
         ring2 = ",".join(map(str, self.ring2))
 
+        # Extract the new parameters
+        tolangle = str(self.tolangle)  # Assuming tolangle is a float or int
+        r = str(self.r)                # Assuming r is an int
+        h = str(self.h)              # Assuming r2 is an int
+
         # Set the OMP_NUM_THREADS environment variable
         os.environ['OMP_NUM_THREADS'] = '1'
         
@@ -510,12 +519,16 @@ class HEDM_Toolkit:
             str(Toldist),
             symmetry,
             ring1,
-            ring2
+            ring2,
+            tolangle,  
+            r,         
+            h      
         ]
         
         print("Executing command:", cmd)
         # Execute the command
         subprocess.run(cmd)
+
 
     def run_ImageD11_fitting_script(self, u_file, U_file, par_file, flt_file_name, t, omega_slop):
         script_path = pkg_resources.resource_filename('HEDM_Toolkit', 'scripts/fitting.py')

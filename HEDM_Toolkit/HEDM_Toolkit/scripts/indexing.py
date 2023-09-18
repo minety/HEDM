@@ -8,6 +8,9 @@ if __name__=="__main__":
     symmetry = sys.argv[9]
     ring1 = list(map(int, sys.argv[10].split(',')))
     ring2 = list(map(int, sys.argv[11].split(',')))
+    tolangle = float(sys.argv[12])  # New external input
+    r = int(sys.argv[13])           # New external input for radius of cylinder
+    r2 = int(sys.argv[14])          # New external input for beam height/2
     
     gridpars = {
         'DSTOL' : 0.004,
@@ -20,7 +23,7 @@ if __name__=="__main__":
         'RING2' : ring2,
         'NUL' : True,
         'FITPOS' : True,
-        'tolangle' : 1.0,
+        'tolangle' : tolangle,
         'toldist' : int(sys.argv[8]),
         'NPROC' : None,
         'NTHREAD' : 1,
@@ -31,8 +34,6 @@ if __name__=="__main__":
     except:
         pass
     # grid to search
-    r = 800    # radius of cylinder
-    r2 = 500   # Beam height
     translations = [(t_x, t_y, t_z)
         for t_x in range(-r, r+1, 200)
         for t_y in range(-r, r+1, 200)

@@ -5,7 +5,7 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 setup(
     name='HEDM_Toolkit',
-    version='0.1.2',
+    version='0.3.1',
     author='Ye Tian',
     author_email='ytian37@jhu.edu',
     entry_points={

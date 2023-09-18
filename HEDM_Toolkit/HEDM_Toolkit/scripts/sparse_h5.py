@@ -181,22 +181,36 @@ def top_pixels(nnz, row, col, val, howmany, thresholds):
 
 @functools.lru_cache(maxsize=1)
 def get_dset(h5name, dsetname):
-    """This avoids to re-read the dataset many times"""
-    print(h5name)
-    dset = h5py.File(h5name, "r")[dsetname]
-    #dset = np.swapaxes(dset,1,2)
-    return dset
-
+    """This avoids re-reading the dataset many times"""
+    with h5py.File(h5name, "r") as h5file:
+        if dsetname not in h5file:
+            raise ValueError(f"No dataset or group named {dsetname} in the file {h5name}")
+        dset = h5file[dsetname]
+        if isinstance(dset, h5py.Group):
+            keys = list(dset.keys())
+            raise TypeError(f"Expected a dataset at {dsetname}, but got a group with keys: {keys}")
+        return dset
 
 def choose_parallel(args):
     """reads a frame and sends back a sparse frame"""
     h5name, address, frame_num = args
-    print(frame_num)
-    print(address)
-    frm = get_dset(h5name, address)[frame_num]
-    frm = np.swapaxes(frm,0,1) # This is wrong, seems already swapped when entering
-    cor = OPTIONS.correct( frm )
-    return frame_num, dosegment( cor )
+
+    # Open the HDF5 file for each frame
+    with h5py.File(h5name, "r") as h5file:
+        if address not in h5file:
+            raise ValueError(f"No dataset or group named {address} in the file {h5name}")
+        
+        dset = h5file[address]
+        
+        # Check if frame_num is a valid index for the dataset
+        if frame_num >= len(dset):
+            raise IndexError(f"Frame number {frame_num} out of range for dataset with {len(dset)} frames.")
+        
+        frm = dset[frame_num]
+        cor = OPTIONS.correct(frm)
+        
+    return frame_num, dosegment(cor)
+
 
 def dosegment( frm ):
     if dosegment.cache is None:
@@ -319,7 +333,11 @@ def segment_scans( fname,
                 '''
                 g = hout.create_group(scan)
                 gm = g.create_group("measurement")
-                tmp = np.array(range(3600))/10
+                # tmp = np.array(range(3600))/10
+                length = int(sys.argv[4])  # get number of frames from argv, this is for omega interval
+                # tmp = np.array(range(length))/10
+                interval = 360.0 / length
+                tmp = np.array(range(length)) * interval
                 tmp2 = np.array([0.])
                 gm.create_dataset("diffrz",data=tmp[:])
                 gm.create_dataset("diffrz_center",data=tmp[:])
@@ -336,7 +354,7 @@ def segment_scans( fname,
                     frms = hout['imageseries/images']
                 else:
                     raise ValueError("Neither 'images' nor 'imageseries/images' paths found in the HDF5 file.")
-                #frms = np.swapaxes(frms,1,2)
+                frms = np.swapaxes(frms,1,2)
                 #frms = hout['flyscan_00001/scan_data/images']
                 row = g.create_dataset("row", (1,), dtype=np.uint16, **opts)
                 col = g.create_dataset("col", (1,), dtype=np.uint16, **opts)
@@ -351,7 +369,10 @@ def segment_scans( fname,
                 print("shape="+str(frms.shape[0]))
                 print("gattr shape0="+str(g.attrs["shape0"]))
                 npx = 0
-                address = scan
+                if scan == "imageseries":
+                    address = scan + "/images"
+                else:
+                    address = scan
                 #address = scan + "/measurement/" + detector
                 nimg = frms.shape[0]
                 args = [(fname, address, i) for i in range(nimg)]

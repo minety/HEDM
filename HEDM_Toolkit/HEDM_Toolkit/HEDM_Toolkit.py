@@ -14,8 +14,11 @@ import time
 import functools
 import hdf5plugin
 import numba
-from ImageD11 import sparseframe, cImageD11
+from ImageD11 import sparseframe, cImageD11, columnfile
 import pkg_resources
+import matplotlib.pyplot as plt
+from skimage import draw
+from matplotlib.patches import Circle
 
 class HEDM_Toolkit:
     def __init__(self, **kwargs):
@@ -71,8 +74,11 @@ class HEDM_Toolkit:
         self.symmetry = self.params.get('symmetry')
         self.ring1 = self.params.get('ring1')
         self.ring2 = self.params.get('ring2')
-        self.ilastik_input = self.params.get('ilastik_input', None) 
-    
+        self.ilastik_input = self.params.get('ilastik_input', None)
+        self.frame_number = self.params.get('frame_number', 0)
+        self.proc_file = self.params.get('proc_file', None)
+        self.raw_h5file = self.params.get('raw_h5file', None)
+        self.output_png = self.params.get('output_png', None) 
 
     def convert(self, *args, **kwargs):
         raise NotImplementedError("Subclass should implement this method")
@@ -172,23 +178,6 @@ class HEDM_Toolkit:
                 dataset[i] = img
 
     # May need to modified later for SOLEIL data
-    # def hdf5_to_hdf5(self):
-    #     # Copy the input HDF5 file to the output file with a new name and change the internal path to /images
-    #     with h5py.File(self.input_file, 'r') as input_file:
-    #         with h5py.File(self.output_file, 'w') as output_file:
-    #             # Iterate over all keys in the input file
-    #             for key in input_file.keys():
-    #                 # Get the dataset from the input file
-    #                 input_dataset = input_file[key]
-    #                 # Remove the specified number of empty images
-    #                 if self.empty_images > 0:
-    #                     input_dataset = input_dataset[self.empty_images:]
-    #                 # Create a new dataset in the output file with the same shape and dtype as the input dataset
-    #                 # The new dataset is created at the '/images' path in the output file
-    #                 output_dataset = output_file.create_dataset(f'/images', shape=input_dataset.shape, dtype=input_dataset.dtype)
-    #                 # Copy the data from the input dataset to the output dataset
-    #                 output_dataset[()] = input_dataset[()]
-
     def hdf5_to_hdf5(self):
         # Paths to check in the HDF5 file if dataset_path is not provided in the configuration
         possible_paths = ['/imageseries/images', '/images']
@@ -288,7 +277,6 @@ class HEDM_Toolkit:
         layer, det = map(int, match.groups())
         return (layer * 2 + det) * 180
 
-    
     def hdf5_to_tiff(self):
         with h5py.File(self.hdf5_file, 'r') as f:
             dataset = f[self.image_ilastik_path]
@@ -319,20 +307,27 @@ class HEDM_Toolkit:
             raise ValueError(f"Invalid filename: {self.sort_filename}")
         layer, det = map(int, match.groups())
         return layer
-    
+
     def hdf5_to_npz(self, flip_option):
         base_name, extension = os.path.splitext(self.bgsub_h5)
+
         # Use the provided input_file_ff or the default if not provided
         if self.input_file_ff:
             input_file_ff = self.input_file_ff
             # Remove 'ilastik_' when input_file_ff is provided
             output_file = f"{base_name}_proc.npz"
-            # If input_filepath is provided, strip the leading forward slash. Otherwise, use 'images' as the default.
-            dataname = self.input_filepath.lstrip('/') if self.input_filepath else 'images'
         else:
             input_file_ff = f"{base_name}_ilastik_proc{extension}"
             output_file = f"{base_name}_ilastik_proc.npz"
-            dataname = 'images'
+        
+        # Check for the possible data paths in the HDF5 file
+        with h5py.File(input_file_ff, 'r') as hf:
+            if 'images' in hf:
+                dataname = 'images'
+            elif 'imageseries/images' in hf:
+                dataname = 'imageseries/images'
+            else:
+                raise ValueError("The HDF5 file does not contain either 'images' or 'imageseries/images' data paths.")
 
         ims = imageseries.open(
             input_file_ff,
@@ -365,7 +360,7 @@ class HEDM_Toolkit:
 
     ########################### 
     # ImageD11 related functions
-    ###########################
+    ###########################   
 
     def hdf5_to_bg_edf(self):
         base_name, extension = os.path.splitext(self.bgsub_h5)
@@ -373,15 +368,17 @@ class HEDM_Toolkit:
         # Use the provided input_file_ff or the default if not provided
         input_file_ff = self.input_file_ff if self.input_file_ff else f"{base_name}_ilastik_proc{extension}"
         
-        # If input_filepath is not provided in the instance, use image_default_path
-        if not self.input_filepath:
-            input_filepath = self.image_default_path
-        else:
-            input_filepath = self.input_filepath
- 
         # Open the ilastik processed file
         with h5py.File(input_file_ff, 'r') as f:
-            im = f[input_filepath]
+            # Check for the possible data paths in the HDF5 file
+            if 'images' in f:
+                dataname = 'images'
+            elif 'imageseries/images' in f:
+                dataname = 'imageseries/images'
+            else:
+                raise ValueError("The HDF5 file does not contain either 'images' or 'imageseries/images' data paths.")
+            
+            im = f[dataname]
             im2 = np.median(im[:, :, :], axis=0)  # Calculate median for all frames
             
         # Save background
@@ -399,10 +396,11 @@ class HEDM_Toolkit:
         
         # Construct the full command
         cmd = [
-            'python', script_path, 
+            'python', script_path,
             input_file_ff,
             bg_filename,
-            str(self.flt_THRESHOLDS)
+            str(self.flt_THRESHOLDS),
+            str(self.num_images)
         ]
         
         # Execute the command
@@ -423,8 +421,8 @@ class HEDM_Toolkit:
             flt_file = f"{base_name}_t{str(self.flt_THRESHOLDS)}.flt"
         else:
             input_file_ff = f"{base_name}_ilastik_proc{extension}"
-            sparse_file = f"{base_name}_ilastik_t{str(self.flt_THRESHOLDS)}_sparse.h5"
-            flt_file = f"{base_name}_ilastik_t{str(self.flt_THRESHOLDS)}.flt"
+            sparse_file = f"{base_name}_ilastik_proc_t{str(self.flt_THRESHOLDS)}_sparse.h5"
+            flt_file = f"{base_name}_ilastik_proc_t{str(self.flt_THRESHOLDS)}.flt"
 
         par_file = f"{base_name}.par"
         
@@ -482,7 +480,7 @@ class HEDM_Toolkit:
         
         # Determine the flt_file_name based on the presence of input_file_ImageD11
         if self.input_file_ff:
-            flt_file_name = os.path.basename(f"{base_name}_proc_t{str(self.flt_THRESHOLDS)}.flt")
+            flt_file_name = os.path.basename(f"{base_name}_t{str(self.flt_THRESHOLDS)}.flt")
         else:
             flt_file_name = os.path.basename(f"{base_name}_ilastik_proc_t{str(self.flt_THRESHOLDS)}.flt")
 
@@ -535,11 +533,11 @@ class HEDM_Toolkit:
     def run_ImageD11_all_fitting_scripts(self):
         base_name, extension = os.path.splitext(self.bgsub_h5)
         par_file = f"{base_name}.par"
-        # Determine the flt_file_name based on the presence of input_file_ff
+        # Determine the flt_file_name based on the presence of input_file_ImageD11
         if self.input_file_ff:
-            flt_file_name = os.path.basename(f"{base_name}_proc.flt")
+            flt_file_name = os.path.basename(f"{base_name}_t{str(self.flt_THRESHOLDS)}.flt")
         else:
-            flt_file_name = os.path.basename(f"{base_name}_ilastik_proc.flt")
+            flt_file_name = os.path.basename(f"{base_name}_ilastik_proc_t{str(self.flt_THRESHOLDS)}.flt")
         t_values = [0.05, 0.04, 0.03, 0.02, 0.01]
         omega_slop = 0.05
         
@@ -565,6 +563,96 @@ class HEDM_Toolkit:
         # Rename the temporary output file to the original file name
         os.rename(output_filepath, input_filepath)
 
+    def load_frame(self, filename):
+        with h5py.File(filename, 'r') as f:
+            if 'images' in f:
+                group = f['images']
+                if isinstance(group, h5py.Dataset):
+                    return group[self.frame_number]
+                else:
+                    for name, ds in group.items():
+                        if isinstance(ds, h5py.Dataset):
+                            return ds[self.frame_number]
+            elif 'imageseries/images' in f:
+                group = f['imageseries/images']
+                if isinstance(group, h5py.Dataset):
+                    return group[self.frame_number]
+                else:
+                    for name, ds in group.items():
+                        if isinstance(ds, h5py.Dataset):
+                            return ds[self.frame_number]
+            else:
+                raise ValueError("Neither 'images' nor 'imageseries/images' were found in the HDF5 file.")
+
+    def load_peaks(self, filename):
+        file_extension = filename.split('.')[-1]
+        if file_extension == "flt":
+            colf = columnfile.columnfile(filename)
+            peaks_s = colf.sc
+            peaks_f = colf.fc
+            peaks_omega = colf.omega
+        elif file_extension == "npz":
+            # Placeholder for the npz loading logic
+            peaks_s = np.array([])
+            peaks_f = np.array([])
+            peaks_omega = np.array([])
+        else:
+            raise ValueError(f"Unsupported file extension: {file_extension}")
+
+        omega_step = 360 / self.num_images  # Calculate omega step based on number of images
+
+        # Calculate the specific omega value for the given frame_number
+        desired_omega = self.frame_number * omega_step
+
+        # Create a mask for peaks that are close to the desired omega (considering minor floating-point discrepancies)
+        mask = np.isclose(peaks_omega, desired_omega, atol=1e-5)
+
+        # Printing the number of spots found
+        num_spots = np.sum(mask)
+        print(f"Found {num_spots} spots for frame {self.frame_number} (omega: {desired_omega:.2f} degrees).")
+
+        return peaks_s[mask], peaks_f[mask]
+
+    def visualize_difference(self):
+        raw_frame = self.load_frame(self.raw_h5file)
+
+        # Create a figure and axis
+        fig, ax = plt.subplots(figsize=(10, 10))
+        
+        # Adjust contrast based on percentiles for better visibility
+        vmin = np.percentile(raw_frame, 5)
+        vmax = np.percentile(raw_frame, 95)
+        ax.imshow(raw_frame, cmap='gray_r', origin='lower', vmin=vmin, vmax=vmax)
+        
+        # Check if it's an h5 file and plot its content
+        if self.proc_file.endswith('.h5'):
+            proc_frame = self.load_frame(self.proc_file)
+            mask = proc_frame != 0
+            ax.imshow(mask, cmap='Reds', origin='lower', alpha=0.6)
+
+        # Check if it's an flt file and plot its content
+        elif self.proc_file.endswith('.flt'):
+            proc_s, proc_f = self.load_peaks(self.proc_file)
+
+            print("Coordinates of first few spots:")
+            for s, f in zip(proc_s[:5], proc_f[:5]):
+                print(f"Spot: s={s:.4f}, f={f:.4f}")
+
+            # Overlay empty circles on the raw frame
+            for s, f in zip(proc_s, proc_f):
+                if 0 <= s < raw_frame.shape[0] and 0 <= f < raw_frame.shape[1]:
+                    circle = Circle((f, s), radius=15, edgecolor='r', facecolor='none', linewidth=1.5)
+                    ax.add_patch(circle)
+
+        # Placeholder for the npz loading logic
+        elif self.proc_file.endswith('.npz'):
+            pass
+
+        else:
+            raise ValueError(f"Unsupported file extension for processed file: {self.proc_file.split('.')[-1]}")
+
+        plt.savefig(self.output_png)
+
 class Standardize_format(HEDM_Toolkit):
     def convert(self):
         print("Standardizing format...")
@@ -585,9 +673,6 @@ class Subtract_background(HEDM_Toolkit):
         if self.bgsub:
             print("Applying background subtraction...")
             self.bgsub4hdf5()
-        if self.slice_file:
-            print("Generating sliced bgsub data...")
-            self.hdf5slice(self.bgsub_h5, self.imageseries_path)    
 
 class Process_with_ilastik(HEDM_Toolkit):
     def convert(self):
@@ -667,6 +752,10 @@ class ff_HEDM_process(HEDM_Toolkit):
         else:
             print("x.")
 
+class Visualize_Diff(HEDM_Toolkit):
+    def convert(self):
+        print("Saving the overlapping files...")
+        self.visualize_difference()
 
 def run_function(converter_class, **params):
     converter = converter_class(**params)
@@ -683,7 +772,7 @@ def load_config(file_path):
 
 def main():
     parser = argparse.ArgumentParser(description='Process some parameters.')
-    parser.add_argument('command', choices=['stand', 'sub', 'ilastik', 'hedm_formats', 'all', 'slice', 'ff_HEDM_process'])
+    parser.add_argument('command', choices=['stand', 'sub', 'ilastik', 'hedm_formats', 'all', 'slice', 'ff_HEDM_process', 'vis_diff'])
     parser.add_argument('config_file')
     args = parser.parse_args()
 
@@ -738,6 +827,8 @@ def main():
                 run_function(Process_with_ilastik, **params)
                 run_function(Convert_to_hedm_formats, **params)
                 run_function(ff_HEDM_process, **params)
+            elif args.command == 'vis_diff':
+                run_function(Visualize_Diff, **params)
 if __name__ == "__main__":
     main()
 

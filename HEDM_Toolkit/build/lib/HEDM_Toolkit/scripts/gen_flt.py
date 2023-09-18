@@ -22,10 +22,10 @@ def get_scan_path(hin):
     """Get the appropriate scan path."""
     if 'images' in hin:
         return 'images'
-    elif 'imageseries/images' in hin:
-        return 'imageseries/images'
+    elif 'imageseries' in hin:  # Check for 'imageseries' directly
+        return 'imageseries'
     else:
-        raise ValueError("Neither 'images' nor 'imageseries/images' paths found in the HDF5 file.")
+        raise ValueError("Neither 'images' nor 'imageseries' paths found in the HDF5 file.")
 
 def newpks(hf, scans=None, npixels=1, monitor=None, monval=1e3, ):
     """ do a peak search in a sparse frame series """
@@ -74,6 +74,10 @@ def newpks(hf, scans=None, npixels=1, monitor=None, monval=1e3, ):
                 c['Number_of_pixels'].append( n[m] )
                 npk = m.sum()
                 c['omega' ].append( np.full( npk , omega[k] ) )
+                # print("Current k:", k)
+                # print("Current omega[k]:", omega[k])
+                # print("Number of peaks (npk):", npk)
+
                 c['dty'].append( np.full( npk , difty ) )
                 iprev = inext
     for t in titles:
@@ -107,8 +111,13 @@ def sortedscans( hfo ):
 
 with h5py.File(outname, 'r') as hin:
     scan_path = get_scan_path(hin)
-    im = hin[scan_path]
-    frm = im[fnum,:,:]
+    if scan_path == 'images':
+        im_dataset = hin[scan_path]
+    elif scan_path == 'imageseries':
+        im_dataset = hin[scan_path + '/images']
+    else:
+        raise ValueError("Unexpected scan path!")
+    frm = im_dataset[fnum,:,:]
 
 with h5py.File(sparsename,"r") as hin:
     scan_path = get_scan_path(hin)

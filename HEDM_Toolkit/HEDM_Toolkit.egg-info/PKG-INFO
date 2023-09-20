@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: HEDM-Toolkit
-Version: 0.3.9
+Version: 0.4.0
 Summary: Tools for High Energy Diffraction Microscopy (HEDM) analysis
 Home-page: https://github.com/minety/HEDM
 Author: Ye Tian
@@ -13,8 +13,6 @@ Classifier: Programming Language :: Python :: 3.8
 Classifier: Programming Language :: Python :: 3.9
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
-
----
 
 # HEDM-Toolkit
 

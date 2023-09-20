@@ -181,10 +181,9 @@ class HEDM_Toolkit:
             for i, img in enumerate(image_data):
                 dataset[i] = img
 
-    # May need to modified later for SOLEIL data
     def hdf5_to_hdf5(self):
         # Paths to check in the HDF5 file if dataset_path is not provided in the configuration
-        possible_paths = ['/imageseries/images', '/images']
+        possible_paths = ['/imageseries/images', '/images', '/flyscan_00001/scan_data/orca_image']
 
         # Open the input HDF5 file
         with h5py.File(self.input_file, 'r') as input_file:

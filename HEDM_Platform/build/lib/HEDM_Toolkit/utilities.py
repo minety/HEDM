@@ -5,7 +5,7 @@ import pkg_resources
 def copy_demo_func():
     try:
         # Get the path of the resource files
-        source_dir = pkg_resources.resource_filename('HEDM_Toolkit', 'Demo/')
+        source_dir = pkg_resources.resource_filename('HEDM_Platform', 'Demo/')
         
         # Get the current working directory
         dest_dir = os.getcwd()

@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 from skimage import draw
 from matplotlib.patches import Circle
 
-class HEDM_Toolkit:
+class HEDM_Platform:
     def __init__(self, **kwargs):
         self.params = kwargs
         self.input_file = self.params.get('input_file')
@@ -140,6 +140,49 @@ class HEDM_Toolkit:
 
     def make_meta():
         return {'testing': '1,2,3'}
+    
+    def get_file_info(self):
+        if self.input_format in ('.hdf5', '.h5', '.nxs'):
+            # Open the input HDF5 file
+            with h5py.File(self.input_file, 'r') as h5_file:
+                # Determine which path exists in the h5_file
+                possible_paths = ['/imageseries/images', '/images', '/flyscan_00001/scan_data/orca_image']
+                dataset_path = None
+                for path in possible_paths:
+                    if path in h5_file:
+                        dataset_path = path
+                        break
+
+                # If no matching path is found, raise an error
+                if not dataset_path:
+                    raise ValueError(f"None of the expected paths {possible_paths} found in {self.input_file}")
+
+                # Get the dataset from the determined path and print the info
+                dataset = h5_file[dataset_path]
+                print(f"File format: HDF5")
+                print(f"File is located at path: {dataset_path}")
+                print(f"Number of frames: {dataset.shape[0]}")
+
+        elif self.input_format in ('.ge', '.ge2', '.ge3', '.ge5'):
+            # Define the width and height of the images.
+            width = 2048
+            height = 2048
+
+            # Read the raw data from the GE file.
+            with open(self.input_file, 'rb') as f:
+                # Skip the header part of the file.
+                f.read(8192)
+                # Read the rest of the file as a numpy array.
+                data = np.fromfile(f, dtype=np.uint16)
+
+            # Calculate the number of frames
+            num_frames = len(data) // (width * height)
+            
+            print(f"File format: GE")
+            print(f"Number of frames: {num_frames}")
+
+        else:
+            print(f"Unsupported input format: {self.input_format}")
 
     def ge2hdf5(self):
         # Define the width and height of the images.
@@ -665,7 +708,12 @@ class HEDM_Toolkit:
 
         plt.savefig(self.output_png)
 
-class Standardize_format(HEDM_Toolkit):
+
+class Check_file_info(HEDM_Platform):
+    def convert(self):
+        self.get_file_info()
+
+class Standardize_format(HEDM_Platform):
     def convert(self):
         print("Standardizing format...")
         if self.input_format in ('.ge', '.ge2', '.ge3', '.ge5'):
@@ -674,19 +722,19 @@ class Standardize_format(HEDM_Toolkit):
         elif self.input_format in ('.tif', '.tiff'):
             print("Converting from .tif format to .h5...")
             self.tif2hdf5()
-        elif self.input_format in ('.hdf5', '.h5'):
-            print("Input file is already in .h5 format. Copying to output file with a new name after deleting empty frames...")
+        elif self.input_format in ('.hdf5', '.h5', '.nxs'):  # Added .nxs here
+            print("Converting from .h5/.nxs format to .h5...")  # Updated the message to include .nxs
             self.hdf5_to_hdf5()
         else:
             print(f"Unsupported input format: {self.input_format}")
 
-class Subtract_background(HEDM_Toolkit):
+class Subtract_background(HEDM_Platform):
     def convert(self):
         if self.bgsub:
             print("Applying background subtraction...")
             self.bgsub4hdf5()
 
-class Process_with_ilastik(HEDM_Toolkit):
+class Process_with_ilastik(HEDM_Platform):
     def convert(self):
         print(f'ilastik_project_file is {self.ilastik_project_file}')
         if self.ilastik_proc:
@@ -716,7 +764,7 @@ class Process_with_ilastik(HEDM_Toolkit):
             print("Generating sliced ilastik processed data...")
             self.hdf5slice(output_file, self.image_default_path)
 
-class Convert_to_hedm_formats(HEDM_Toolkit):
+class Convert_to_hedm_formats(HEDM_Platform):
     def convert(self):
         if self.generate_hexomap_files:
             print("Generating hexomap .tif files...")
@@ -740,12 +788,12 @@ class Convert_to_hedm_formats(HEDM_Toolkit):
         if not any([self.generate_hexomap_files, self.generate_hexrd_files, self.generate_ImageD11_files]):
             print("None of the generate flags is set to True. No action will be performed.")
 
-class SliceHDF5(HEDM_Toolkit):
+class SliceHDF5(HEDM_Platform):
     def convert(self):
         print("Slicing HDF5 file...")
         self.hdf5slice(self.params.get('slice_input_file'), self.params.get('input_file_path'))
 
-class ff_HEDM_process(HEDM_Toolkit):
+class ff_HEDM_process(HEDM_Platform):
     def convert(self):
         if self.ImageD11_process:
             print("ImageD11 indexing...")
@@ -764,7 +812,7 @@ class ff_HEDM_process(HEDM_Toolkit):
         else:
             print("x.")
 
-class Visualize_Diff(HEDM_Toolkit):
+class Visualize_Diff(HEDM_Platform):
     def convert(self):
         print("Saving the overlapping files...")
         self.visualize_difference()
@@ -784,7 +832,7 @@ def load_config(file_path):
 
 def main():
     parser = argparse.ArgumentParser(description='Process some parameters.')
-    parser.add_argument('command', choices=['stand', 'sub', 'ilastik', 'hedm_formats', 'all', 'slice', 'ff_HEDM_process', 'vis_diff'])
+    parser.add_argument('command', choices=['check_file','stand', 'sub', 'ilastik', 'hedm_formats', 'all', 'slice', 'ff_HEDM_process', 'vis_diff'])
     parser.add_argument('config_file')
     args = parser.parse_args()
 
@@ -823,6 +871,8 @@ def main():
         # Call conversion function with the specific converter class you want to use
             if args.command == 'slice':
                 run_function(SliceHDF5, **params)
+            elif args.command == 'check_file':
+                run_function(Check_file_info, **params)
             elif args.command == 'stand':
                 run_function(Standardize_format, **params)
             elif args.command == 'sub':

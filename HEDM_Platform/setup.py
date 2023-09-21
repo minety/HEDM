@@ -4,23 +4,23 @@ with open('README.md', 'r', encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='HEDM_Toolkit',
-    version='0.4.1',
+    name='HEDM_Platform',
+    version='0.0.1',
     author='Ye Tian',
-    author_email='ytian37@jhu.edu',
+    author_email='ytian6688@hotmail.com, ytian37@jhu.edu',
     entry_points={
         'console_scripts': [
-            'HEDM_Toolkit=HEDM_Toolkit.HEDM_Toolkit:main',
-            'copy_demo=HEDM_Toolkit.utilities:copy_demo_func', # assuming the function is in utilities module
+            'HEDM_Platform=HEDM_Platform.HEDM_Platform:main',
+            'copy_demo=HEDM_Platform.utilities:copy_demo_func', # assuming the function is in utilities module
         ],
     },
-    description='Tools for High Energy Diffraction Microscopy (HEDM) analysis',
+    description='Platform for High Energy Diffraction Microscopy (HEDM) Analysis, also known as 3D X-ray Diffraction (3DXRD)',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/minety/HEDM',
     packages=find_packages(),
     package_data={
-        'HEDM_Toolkit': ['scripts/*', 'data/*', 'Demo/*'],
+        'HEDM_Platform': ['scripts/*', 'data/*', 'Demo/*'],
     },
     classifiers=[
         'Development Status :: 3 - Alpha',
@@ -29,6 +29,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
     ],
     python_requires='>=3.8'
 )

@@ -17,7 +17,7 @@ setup(
     description='Platform for High Energy Diffraction Microscopy (HEDM) Analysis, also known as 3D X-ray Diffraction (3DXRD)',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/minety/HEDM',
+    url='https://github.com/HurleyGroup/HEDM-Platform/tree/main/HEDM_Platform',
     packages=find_packages(),
     package_data={
         'HEDM_Platform': ['scripts/*', 'data/*', 'Demo/*'],

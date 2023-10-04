@@ -8,52 +8,42 @@ import hdf5plugin
 import h5py
 import numba
 import fabio
+import concurrent.futures
+from ImageD11 import sparseframe, cImageD11
 
-zcenter = 1056
 bg_scale = 0
+file_path = os.path.join(sys.argv[5], 'removalmask.npy')
+removalmask = np.load(file_path)
 
-removalmask = np.ones((2048,2048))
-
-for ii in range(2048):
-    for jj in range(2048):
-        disttmp = np.sqrt((ii-zcenter)**2+(jj-1005)**2) # works for diff1-scan1-2. 1054 and 1008 are the centers for this
-        if (disttmp > 480) and (disttmp < 730) or (disttmp>930):     #(disttmp > 380) and (disttmp < 730) or (disttmp>930):
-            removalmask[ii,jj] = 1.0    # 0 if removal is true
-
-# Code to clean the 2D image and reduce it to a sparse array:
-# things we might edit
 class Options:
-    HOWMANY = int(2048*2048*0.25)  # max pixels per frame to keep : 10%
-    # additional thresholds to test if you have too many pixels (tuple)
-    THRESHOLDS = (int(sys.argv[3]),97, 98, 99, 100) # tuple([ 25*pow(2,i) for i in range(5) ])
-    # Remove single pixel spots. How many 8-connected pixels needed in a spot to keep it?
+    HOWMANY = int(2048*2048*0.25)
+    THRESHOLDS = (int(sys.argv[3]), 97, 98, 99, 100)
     PIXELS_IN_SPOT = 3
-    # measurements that might be involved in scanning to transfer to output
-    SCANMOTORS = ("diffrz","diffrz_center")
-    # scalars from scan/instrument/positioners/XXXX to transfer to output
-    HEADERMOTORS = ("diffty", "difftz" "samtx", "samty", "samtz", "bigy" )
-    SCANTYPES = ("fscan", "f2scan", "fscan2d","finterlaced")
-    #DETECTORNAME = "eiger"
+    SCANMOTORS = ("diffrz", "diffrz_center")
+    HEADERMOTORS = ("diffty", "difftz" "samtx", "samty", "samtz", "bigy")
     DETECTORNAME = "frelon3"
-    MASKFILE = None # "/data/id11/nanoscope/Eiger/mask_20210428.edf"
+    MASKFILE = None
     BACKGROUND = sys.argv[2]
-    CORES = None  # guess the number of cores to use
+    CORES = os.cpu_count() - 1
     HNAME = sys.argv[1]
     OUTPATH = os.getcwd()
 
-########################## should not need to change much below here
+    def __init__(self):
+        if self.MASKFILE:
+            self.MASK = 1 - fabio.open(self.MASKFILE).data
+        else:
+            self.MASK = None
+        self.BG = scaledbg(fabio.open(self.BACKGROUND).data) if self.BACKGROUND else None
+
     def correct(self, frm):
         cor = frm
         if self.MASK is not None:
-            cor = cor * self.MASK
+            cor *= self.MASK
         if self.BG is not None:
-            cor = cor.astype(np.float32) - self.BG.estimate( cor )*bg_scale
-        cor = np.multiply(cor,removalmask)
-        print('Applied median subtraction and mask')
+            cor = cor.astype(np.float32) - self.BG.estimate(cor) * bg_scale
+        cor *= removalmask
+        # print('Applied median subtraction and mask')
         return cor
-
-# pip install ImageD11 --no-deps # if you do not have it yet:
-from ImageD11 import sparseframe, cImageD11
 
 class scaledbg(object):
     """
@@ -86,15 +76,15 @@ class scaledbg(object):
     
 def init(self):
     # validate input
-    print("# max pixels",self.HOWMANY)
+    # print("# max pixels",self.HOWMANY)
     self.CUT = self.THRESHOLDS[0]
     assert self.CUT >= 0
     for i in range(1, len(self.THRESHOLDS)):
         assert self.THRESHOLDS[i] > self.THRESHOLDS[i - 1]
-    print("# thresholds", str(self.THRESHOLDS))
+    #print("# thresholds", str(self.THRESHOLDS))
     if self.MASKFILE is not None:
         self.MASK = 1 - fabio.open(self.MASKFILE).data
-        print("# Opened mask", self.MASKFILE)
+        # print("# Opened mask", self.MASKFILE)
     else:
         self.MASK = None
     if self.CORES is None:
@@ -103,14 +93,14 @@ def init(self):
         except:
             self.CORES = os.cpu_count() - 1
     self.CORES = max(1, self.CORES)
-    print("# Aiming to use", self.CORES, "processes")
+    # print("# Aiming to use", self.CORES, "processes")
     threshold_value = int(sys.argv[3])
     outh5 = os.path.split(self.HNAME)[-1].replace(".h5", f"_t{threshold_value}_sparse.h5")
     self.OUTNAME = os.path.join(self.OUTPATH, outh5)
-    print("# Output to ", self.OUTNAME)
+    # print("# Output to ", self.OUTNAME)
     try:
         self.BG = scaledbg( fabio.open(self.BACKGROUND).data )
-        print("# Background subtracted from",self.BACKGROUND)
+        # print("# Background subtracted from",self.BACKGROUND)
     except:
         self.BG=None
 
@@ -341,12 +331,12 @@ def segment_scans( fname,
                 tmp2 = np.array([0.])
                 gm.create_dataset("diffrz",data=tmp[:])
                 gm.create_dataset("diffrz_center",data=tmp[:])
-                print(np.array(g['measurement/diffrz']))
+                # print(np.array(g['measurement/diffrz']))
                 gip = g.create_group("instrument/positioners")
                 gip.create_dataset("diffty",data=tmp2[0])
                 hout = h5py.File(fname,'r')
-                print(hout.keys())
-                print(fname)
+                # print(hout.keys())
+                # print(fname)
                 #frms = hout['images']
                 if 'images' in hout:
                     frms = hout['images']
@@ -366,8 +356,8 @@ def segment_scans( fname,
                 g.attrs["nframes"] = frms.shape[0]
                 g.attrs["shape0"] = frms.shape[1]
                 g.attrs["shape1"] = frms.shape[2]
-                print("shape="+str(frms.shape[0]))
-                print("gattr shape0="+str(g.attrs["shape0"]))
+                # print("shape="+str(frms.shape[0]))
+                # print("gattr shape0="+str(g.attrs["shape0"]))
                 npx = 0
                 if scan == "imageseries":
                     address = scan + "/images"
@@ -388,9 +378,11 @@ def segment_scans( fname,
             ):
                 if i % 500 == 0:
                     if spf is None:
-                        print("%4d 0" % (i), end=",")
+                        # print("%4d 0" % (i), end=",")
+                        pass
                     else:
-                        print("%4d %d" % (i, spf.nnz), end=",")
+                        # print("%4d %d" % (i, spf.nnz), end=",")
+                        pass
                     sys.stdout.flush()
                 if spf is None:
                     nnz[i] = 0
@@ -407,7 +399,7 @@ def segment_scans( fname,
                 nnz[i] = spf.nnz
                 npx += spf.nnz
             ndone += nimg
-            print("\n# Done", scan, nimg, ndone)
+            # print("\n# Done", scan, nimg, ndone)
     return ndone
 
     # the output file should be flushed and closed when this returns
@@ -418,23 +410,21 @@ def main(hname, outname, mypool):
     if os.path.exists(outname):
         os.remove(outname)
     # read all the scans : just the master process
-    print("hname = ", repr(hname))
-    print("outname = ", repr(outname))
+    # print("hname = ", repr(hname))
+    # print("outname = ", repr(outname))
     with h5py.File(hname, "r") as h:
         scans = list(h["/"])
-        print("scans = ", repr(scans))
-    print("#", time.ctime())
+        # print("scans = ", repr(scans))
+    # print("#", time.ctime())
     start = time.time()
-    print("outname= "+str(outname))
+    # print("outname= "+str(outname))
     nfrm = segment_scans(hname, scans, outname, mypool)
     end = time.time()
-    print("#", time.ctime())
-    print("# Elapsed", end - start, "/s,   f.p.s %.2f" % (nfrm / (end - start)))
+    # print("#", time.ctime())
+    #print("# Elapsed", end - start, "/s,   f.p.s %.2f" % (nfrm / (end - start)))
 
 
 if __name__ == "__main__":
-    import concurrent.futures
-
     with concurrent.futures.ProcessPoolExecutor(max_workers=OPTIONS.CORES) as thepool:
         main(OPTIONS.HNAME, OPTIONS.OUTNAME, thepool)
 

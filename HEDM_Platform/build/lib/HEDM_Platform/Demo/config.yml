@@ -1,0 +1,96 @@
+#########################
+## Options: True or False
+# Generate hexomap .tif files
+generate_hexomap_files: False
+# Generate hexrd .npz files
+generate_hexrd_files: True
+# Generate ImageD11 .flt files
+generate_ImageD11_files: True
+# ImageD11 process
+ImageD11_process: True
+# HEXRD process
+HEXRD_process: False
+#########################
+
+######## Standardize_format ########
+# Working directory
+base_dir: '/Users/yetian/Desktop/3DXRD_work_dir/'
+# General input parameters
+start_constant: 0   # Mainly for nf-HEDM, but partially for naming of ff-HEDM files
+sample_name: nugget
+# Total number of layers and detectors, and also for file name formating
+layers: 1 # Number of layers, default 1 for ff-HEDM and N for nf-HEDM
+dets: 1   # Detector distances for nf-HEDM, default 1 for ff-HEDM and 2 for nf-HEDM at APS sector 1
+######## input_file .ge2/ge3/ge5 and .hdf5/h5, select either one below
+# input_file: '/Users/yetian/Desktop/3DXRD/APS2023Feb_Au_ff.ge5'
+input_file: '/Users/yetian/Desktop/3DXRD_work_dir/nugget_2_frames_for_test.h5'
+# dataset_path: 'images'   #'/imageseries/images'   #None #'/path'
+# ff-HEDM may have empty frames to obtain data during the unstable stage of the motor
+empty_images: 0
+# number of frames in total including empty frames
+num_images: 2
+#########################
+
+######## Subtract_background ########
+# omega: rotation angle for each rotation step of the motor
+omega: 0.1
+# Background subtraction setting: 25-25 percentile filter, 50-median fitler, 75-75 percentile, etc. Default: 50
+bg_pct: 50
+flip_option: 'h'  # 'v', None, 'hv', default for APS sector 1 is 'h'.
+#########################
+
+######## Slice HDF5 file ########
+slice_input_file: '/Users/yetian/Desktop/3DXRD_work_dir/nugget_layer0_det0_50bg.h5'
+input_file_path: '/imageseries/images'
+# input_file_path: '/images'
+slice_images: 1
+#########################
+
+######## Process_with_ilastik ########
+# ilastik installed location
+ilastik_loc: '/Applications/ilastik-1.4.0-OSX2.app/Contents/ilastik-release/run_ilastik.sh'
+# ilastik project file which need user manually generate from ilastik GUI version
+ilastik_project_file: '/Users/yetian/Desktop/3DXRD_work_dir/nugget_test.ilp'
+# # file to be processed by ilastik other than default pipeline
+# ilastik_input: '/Users/yetian/Desktop/3DXRD_work_dir/nugget_layer0_det0_50bg.h5'
+#########################
+
+######## Convert_to_hedm_formats ########
+## Parameters for convert hdf5 to hexomap .tif images
+hdf5_file: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_layer20_det0_50bg_proc.h5'
+hdf5_file_name: 'nugget1_nf_layer20_det0_50bg_proc.h5'
+input_hdf5: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/'
+hdf5_input_folder: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/'
+prefix: 'nugget1_nf_int4'
+tiff_output_folder: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nf_ilastik_proc'
+input_tiff_folder: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_before'
+selected_layers: [20]
+##### Additional option #####
+## Parameters for convert hdf5 to ff-HEDM formats without ilastik processed (Users can specify the other raw dataset by themselves but have to be hdf5 files with correct path.)
+input_file_ff: '/Users/yetian/Desktop/3DXRD_work_dir/nugget_layer0_det0_50bg.h5' # None
+#########################
+
+######## ff_HEDM_process ########
+#### ImageD11 input parameters
+symmetry: 'hexagonal'   #'cubic' # 'hexagonal'
+ring1: [1, 2]
+ring2: [1, 2, 4, 5, 6, 7, 8, 9, 11, 12, 14]
+NPKS: 50
+UPKS: 45
+Tolseq1: 0.03
+Tolseq2: 0.025
+Toldist: 150
+flt_THRESHOLDS: 1
+Idx_prefix: 'test_nugget'
+Tolangle: 1
+Cylinder_radius: 150     # 800
+Search_height: 50       # 500
+# Num_cpus: 5  # Comment out to use all cpus
+#########################
+
+######## Visualize_Diff ########
+frame_number: 1
+proc_file: '/Users/yetian/Desktop/3DXRD_work_dir/Au_layer0_det0_50bg.h5'
+raw_h5file: '/Users/yetian/Desktop/3DXRD/Au_layer0_det0.h5'
+output_png: '/Users/yetian/Desktop/3DXRD_work_dir/Au_layer0_det0_50bg.png'
+#########################

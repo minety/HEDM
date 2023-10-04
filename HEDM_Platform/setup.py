@@ -5,13 +5,13 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 setup(
     name='HEDM_Platform',
-    version='0.0.1',
+    version='0.1.1',
     author='Ye Tian',
     author_email='ytian6688@hotmail.com, ytian37@jhu.edu',
     entry_points={
         'console_scripts': [
-            'HEDM_Platform=HEDM_Platform.HEDM_Platform:main',
-            'copy_demo=HEDM_Platform.utilities:copy_demo_func', # assuming the function is in utilities module
+            'hedm-platform=HEDM_Platform.HEDM_Platform:main',
+            'copy_demo=HEDM_Platform.utilities:copy_demo_func', 
         ],
     },
     description='Platform for High Energy Diffraction Microscopy (HEDM) Analysis, also known as 3D X-ray Diffraction (3DXRD)',

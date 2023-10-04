@@ -23,6 +23,7 @@ from matplotlib.patches import Circle
 class HEDM_Platform:
     def __init__(self, **kwargs):
         self.params = kwargs
+        self.base_dir = self.params['base_dir']
         self.input_file = self.params.get('input_file')
         self.imageseries_path = '/imageseries/images'
         self.image_default_path = '/images'
@@ -81,8 +82,14 @@ class HEDM_Platform:
         self.output_png = self.params.get('output_png', None)
         self.tolangle = self.params.get('Tolangle', 1)
         self.r = self.params.get('Cylinder_radius', 800) 
-        self.h = self.params.get('Search_height', 500) 
-
+        self.h = self.params.get('Search_height', 500)
+        self.ncpu = self.params.get('Num_cpus', None)
+        self.removalmask = np.ones((2048, 2048))
+        self.center_position_x = self.params.get('center_position', {}).get('x', 1056)
+        self.center_position_y = self.params.get('center_position', {}).get('y', 1005)
+        self.max_num_frm = self.params.get('max_num_frm', 2)
+        self.removal_regions = self.params.get('removal_regions', [])
+        self.output_png_rm_reg = self.params.get('output_png_rm_reg', None) 
 
     def convert(self, *args, **kwargs):
         raise NotImplementedError("Subclass should implement this method")
@@ -264,7 +271,7 @@ class HEDM_Platform:
                 output_dataset[()] = input_dataset[()]
 
 
-    def bgsub4hdf5(self):
+    def bgsub4hdf5(self, flip_option):
         ims = imageseries.open(
             self.output_file,
             format='hdf5',
@@ -287,7 +294,7 @@ class HEDM_Platform:
 
         # Now, apply the processing options
         ProcessedIS = imageseries.process.ProcessedImageSeries
-        ops = [('dark', dark), ('flip', None)] # None, 'h', 'v', etc.
+        ops = [('dark', dark), ('flip', flip_option)] # None, 'h', 'v', etc.
         pimgs = ProcessedIS(ims, ops)
 
         # Save the processed imageseries in hdf5 format
@@ -354,7 +361,7 @@ class HEDM_Platform:
         layer, det = map(int, match.groups())
         return layer
 
-    def hdf5_to_npz(self, flip_option):
+    def hdf5_to_npz(self):
         base_name, extension = os.path.splitext(self.bgsub_h5)
 
         # Use the provided input_file_ff or the default if not provided
@@ -397,7 +404,7 @@ class HEDM_Platform:
 
         # Now, apply the processing options
         ProcessedIS = imageseries.process.ProcessedImageSeries
-        ops = [('dark', dark), ('flip', flip_option)] # None, 'h', 'v', etc.
+        ops = [('dark', dark), ('flip', None)] # None, 'h', 'v', etc.
         pimgs = ProcessedIS(ims, ops)
 
         # Save the processed imageseries in npz format
@@ -432,7 +439,7 @@ class HEDM_Platform:
         fabio.edfimage.edfimage(im2.astype(np.uint16)).write(output_filename)
 
     def run_sparse_script(self):
-        script_path = pkg_resources.resource_filename('HEDM_Toolkit', 'scripts/sparse_h5.py')
+        script_path = pkg_resources.resource_filename('HEDM_Platform', 'scripts/sparse_h5.py')
         
         # Construct the input and output filenames
         base_name, extension = os.path.splitext(self.bgsub_h5)
@@ -446,16 +453,17 @@ class HEDM_Platform:
             input_file_ff,
             bg_filename,
             str(self.flt_THRESHOLDS),
-            str(self.num_images)
+            str(self.num_images),
+            str(self.base_dir)
         ]
         
         # Execute the command
         subprocess.run(cmd)
 
     def run_gen_flt_script(self):
-        script_path = pkg_resources.resource_filename('HEDM_Toolkit', 'scripts/gen_flt.py')
-        dx_file = pkg_resources.resource_filename('HEDM_Toolkit', 'data/imaged11_dx.edf')
-        dy_file = pkg_resources.resource_filename('HEDM_Toolkit', 'data/imaged11_dy.edf')
+        script_path = pkg_resources.resource_filename('HEDM_Platform', 'scripts/gen_flt.py')
+        dx_file = pkg_resources.resource_filename('HEDM_Platform', 'data/imaged11_dx.edf')
+        dy_file = pkg_resources.resource_filename('HEDM_Platform', 'data/imaged11_dy.edf')
         
         # Construct the input and output filenames
         base_name, extension = os.path.splitext(self.bgsub_h5)
@@ -470,8 +478,8 @@ class HEDM_Platform:
             sparse_file = f"{base_name}_ilastik_proc_t{str(self.flt_THRESHOLDS)}_sparse.h5"
             flt_file = f"{base_name}_ilastik_proc_t{str(self.flt_THRESHOLDS)}.flt"
 
-        par_file = f"{base_name}.par"
-        
+        par_file = base_name.replace(f"_{self.bg_pct}bg", "") + ".par"
+ 
         # Construct the full command
         cmd = [
             'python', script_path, 
@@ -486,14 +494,14 @@ class HEDM_Platform:
         subprocess.run(cmd)
 
     def run_clean_flt_script(self):
-        script_path = pkg_resources.resource_filename('HEDM_Toolkit', 'scripts/clean_flt.py')
+        script_path = pkg_resources.resource_filename('HEDM_Platform', 'scripts/clean_flt.py')
 
         # Construct the input and output filenames
         base_name, extension = os.path.splitext(self.bgsub_h5) 
         
         # Additional filenames based on your requirements
         merge3D_tor = 1.6
-        par_file = f"{base_name}.par"
+        par_file = base_name.replace(f"_{self.bg_pct}bg", "") + ".par"
         base_dir = os.path.dirname(base_name)
         # Determine the flt_file_name based on the presence of input_file_ImageD11
         if self.input_file_ff:
@@ -515,7 +523,7 @@ class HEDM_Platform:
         subprocess.run(cmd)
 
     def run_ImageD11_indexing_script(self):
-        script_path = pkg_resources.resource_filename('HEDM_Toolkit', 'scripts/indexing.py')
+        script_path = pkg_resources.resource_filename('HEDM_Platform', 'scripts/indexing.py')
 
         # Construct the input and output filenames
         base_name, extension = os.path.splitext(self.bgsub_h5) 
@@ -544,6 +552,7 @@ class HEDM_Platform:
         tolangle = str(self.tolangle)  # Assuming tolangle is a float or int
         r = str(self.r)                # Assuming r is an int
         h = str(self.h)              # Assuming r2 is an int
+        ncpu = str(self.ncpu)
 
         # Set the OMP_NUM_THREADS environment variable
         os.environ['OMP_NUM_THREADS'] = '1'
@@ -564,7 +573,8 @@ class HEDM_Platform:
             ring2,
             tolangle,  
             r,         
-            h      
+            h,
+            ncpu    
         ]
         
         print("Executing command:", cmd)
@@ -573,7 +583,7 @@ class HEDM_Platform:
 
 
     def run_ImageD11_fitting_script(self, u_file, U_file, par_file, flt_file_name, t, omega_slop):
-        script_path = pkg_resources.resource_filename('HEDM_Toolkit', 'scripts/fitting.py')
+        script_path = pkg_resources.resource_filename('HEDM_Platform', 'scripts/fitting.py')
         cmd = [
             'python', script_path,
             '-u', u_file,
@@ -708,10 +718,71 @@ class HEDM_Platform:
 
         plt.savefig(self.output_png)
 
+    def update_removal_mask(self):
+        cx, cy = self.center_position_x, self.center_position_y
+        
+        # Create arrays of x and y indices
+        x_indices, y_indices = np.meshgrid(np.arange(2048), np.arange(2048), indexing='ij')
+        
+        # Compute the distance array from the center
+        distances = np.sqrt((x_indices - cx)**2 + (y_indices - cy)**2)
+        
+        for region in self.removal_regions:
+            start, end = region["start"], region["end"]
+            should_apply = region.get("apply", True)
+
+            if should_apply:
+                mask_region = (distances >= start) & (distances < end)
+                self.removalmask[mask_region] = 0
+        
+        # Construct absolute file path
+        file_path = os.path.join(self.base_dir, 'removalmask.npy')
+        
+        # Save removalmask using the absolute path
+        np.save(file_path, self.removalmask) 
+
+    def visualize_removal_regions(self):
+        # Open the input HDF5 file
+        with h5py.File(self.bgsub_h5, 'r') as h5_file:
+            # Determine which path exists in the h5_file
+            possible_paths = ['/imageseries/images', '/images', '/flyscan_00001/scan_data/orca_image']
+            dataset_path = None
+            for path in possible_paths:
+                if path in h5_file:
+                    dataset_path = path
+                    break
+
+            # If no matching path is found, raise an error
+            if not dataset_path:
+                raise ValueError(f"None of the expected paths {possible_paths} found in {self.bgsub_h5}")
+
+            # Get the dataset from the determined path
+            dataset = h5_file[dataset_path]
+
+            # Extract up to max_num_frm frames and compute their maximum
+            max_frame = np.max(dataset[:self.max_num_frm], axis=0)
+
+        # Reverse the colors: higher values become black
+        reversed_frame = np.max(max_frame) - max_frame
+
+        # Plot the reversed frame
+        plt.imshow(reversed_frame, cmap='gray')
+
+        # Overlay the removal mask regions in red with 30% transparency
+        plt.imshow(np.ma.masked_where(self.removalmask == 1, self.removalmask), cmap='Reds', alpha=0.8)  
+
+        # Save the plot as PNG
+        plt.savefig(self.output_png_rm_reg, dpi=300)
+        plt.close()
 
 class Check_file_info(HEDM_Platform):
     def convert(self):
         self.get_file_info()
+
+class Removal_Mask(HEDM_Platform):
+    def convert(self):
+        self.update_removal_mask()
+        self.visualize_removal_regions()
 
 class Standardize_format(HEDM_Platform):
     def convert(self):
@@ -732,7 +803,8 @@ class Subtract_background(HEDM_Platform):
     def convert(self):
         if self.bgsub:
             print("Applying background subtraction...")
-            self.bgsub4hdf5()
+            self.bgsub4hdf5(self.flip_option)
+            print(f"HEXRD flip option is '{self.flip_option}'.")
 
 class Process_with_ilastik(HEDM_Platform):
     def convert(self):
@@ -772,13 +844,13 @@ class Convert_to_hedm_formats(HEDM_Platform):
 
         if self.generate_hexrd_files:
             print("Generating hexrd .npz files...")
-            self.hdf5_to_npz(self.flip_option)  
-            print(f"HEXRD flip option is '{self.flip_option}'.")
+            self.hdf5_to_npz()
 
         if self.generate_ImageD11_files:
             print("Preparing ImageD11 .edf bg files...")
             self.hdf5_to_bg_edf()
             print("Generating ImageD11 .h5 sparse files...")
+            self.update_removal_mask()
             self.run_sparse_script()
             print("Generating ImageD11 .flt files...")
             self.run_gen_flt_script()
@@ -832,12 +904,12 @@ def load_config(file_path):
 
 def main():
     parser = argparse.ArgumentParser(description='Process some parameters.')
-    parser.add_argument('command', choices=['check_file','stand', 'sub', 'ilastik', 'hedm_formats', 'all', 'slice', 'ff_HEDM_process', 'vis_diff'])
+    parser.add_argument('command', choices=['check_file', 'rm_mask','stand', 'sub', 'ilastik', 'hedm_formats', 'all', 'slice', 'ff_HEDM_process', 'vis_diff'])
     parser.add_argument('config_file')
     args = parser.parse_args()
 
     if len(sys.argv) != 3:
-        print('Usage: HEDM_Toolkit <command> <config_file>')
+        print('Usage: HEDM_Platform <command> <config_file>')
         sys.exit()
 
     # Load configuration
@@ -853,12 +925,14 @@ def main():
     # Create output directory only if generate_hexomap_files is True
     if params.get('generate_hexomap_files', False):
         os.makedirs(params['tiff_output_folder'], exist_ok=True)
-
+   
     # Iterate through layers
     for layer in range(params['layers']):
         for det in range(params['dets']):
             params['output_file'] = params['base_dir'] + '{}_layer{}_det{}.h5'.format(params['sample_name'], layer, det)
-            params['bgsub_h5_file'] = params['base_dir'] + '{}_layer{}_det{}_50bg.h5'.format(params['sample_name'], layer, det)
+            
+            # Use self.bg_pct to dynamically set the "bg" part in the filename
+            params['bgsub_h5_file'] = params['base_dir'] + '{}_layer{}_det{}_{}bg.h5'.format(params['sample_name'], layer, det, params['bg_pct'])
 
             start_num = params['start_constant'] + layer*params['num_images']*params['omega']*params['dets'] + det*params['num_images']*params['omega']
             end_num = start_num + params['num_images']*params['omega'] -1
@@ -873,6 +947,8 @@ def main():
                 run_function(SliceHDF5, **params)
             elif args.command == 'check_file':
                 run_function(Check_file_info, **params)
+            elif args.command == 'rm_mask':
+                run_function(Removal_Mask, **params)
             elif args.command == 'stand':
                 run_function(Standardize_format, **params)
             elif args.command == 'sub':
@@ -893,5 +969,4 @@ def main():
                 run_function(Visualize_Diff, **params)
 if __name__ == "__main__":
     main()
-
 

@@ -1,7 +1,9 @@
 #########################
 ## Options: True or False
-# Generate hexomap .tif files
-generate_hexomap_files: False
+### nf-HEDM options ###
+# # Generate hexomap .tif files
+# generate_hexomap_files: False
+### ff-HEDM options ###
 # Generate hexrd .npz files
 generate_hexrd_files: True
 # Generate ImageD11 .flt files
@@ -18,14 +20,14 @@ center_position:
   y: 1005
 removal_regions:
   - start: 0
-    end: 400
-    apply: False
+    end: 200
+    apply: True
   - start: 400
     end: 600
-    apply: False
+    apply: True
   - start: 800
     end: 1000
-    apply: False
+    apply: True
 max_num_frm: 2
 output_png_rm_reg: '/Users/yetian/Desktop/3DXRD_work_dir/removalmask.png'
 #########################
@@ -40,9 +42,7 @@ sample_name: nugget
 layers: 1 # Number of layers, default 1 for ff-HEDM and N for nf-HEDM
 dets: 1   # Detector distances for nf-HEDM, default 1 for ff-HEDM and 2 for nf-HEDM at APS sector 1
 ######## input_file .ge2/ge3/ge5 and .hdf5/h5, select either one below
-# input_file: '/Users/yetian/Desktop/3DXRD/APS2023Feb_Au_ff.ge5'
 input_file: '/Users/yetian/Desktop/3DXRD_work_dir/nugget_2_frames_for_test.h5'
-# dataset_path: 'images'   #'/imageseries/images'   #None #'/path'
 # ff-HEDM may have empty frames to obtain data during the unstable stage of the motor
 empty_images: 0
 # number of frames in total including empty frames
@@ -52,9 +52,11 @@ num_images: 2
 ######## Subtract_background ########
 # omega: rotation angle for each rotation step of the motor
 omega: 0.1
+# number of frames to use for bg_sub
+bg_nf: 10
 # Background subtraction setting: 25-25 percentile filter, 50-median fitler, 75-75 percentile, etc. Default: 50
 bg_pct: 50
-flip_option: 'r270' # default for APS sector 1 is 'h', options are None, 'h', 'v', 'vh', 't', 'r90', 'r270'.
+flip_option: 'vh' # default for APS sector 1 is 'h', options are None, 'h', 'v', 'vh', 't', 'r90', 'r270'.
 #########################
 
 ######## Slice HDF5 file ########
@@ -74,15 +76,17 @@ ilastik_project_file: '/Users/yetian/Desktop/3DXRD_work_dir/nugget_test.ilp'
 #########################
 
 ######## Convert_to_hedm_formats ########
-## Parameters for convert hdf5 to hexomap .tif images
-hdf5_file: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_layer20_det0_50bg_proc.h5'
-hdf5_file_name: 'nugget1_nf_layer20_det0_50bg_proc.h5'
-input_hdf5: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/'
-hdf5_input_folder: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/'
-prefix: 'nugget1_nf_int4'
-tiff_output_folder: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nf_ilastik_proc'
-input_tiff_folder: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_before'
-selected_layers: [20]
+### nf-HEDM options ###
+# ## Parameters for convert hdf5 to hexomap .tif images
+# hdf5_file: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_layer20_det0_50bg_proc.h5'
+# hdf5_file_name: 'nugget1_nf_layer20_det0_50bg_proc.h5'
+# input_hdf5: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/'
+# hdf5_input_folder: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/'
+# prefix: 'nugget1_nf_int4'
+# tiff_output_folder: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nf_ilastik_proc'
+# input_tiff_folder: '/Users/yetian/Desktop/Ryan_test_data/APS_2023Feb/nf_test/nugget1_nf_int_before'
+# selected_layers: [20]
+### ff-HEDM options ###
 ##### Additional option #####
 ## Parameters for convert hdf5 to ff-HEDM formats without ilastik processed (Users can specify the other raw dataset by themselves but have to be hdf5 files with correct path.)
 input_file_ff: '/Users/yetian/Desktop/3DXRD_work_dir/nugget_layer0_det0_50bg.h5' # None
@@ -108,7 +112,7 @@ Search_height: 50       # 500
 
 ######## Visualize_Diff ########
 frame_number: 1
-proc_file: '/Users/yetian/Desktop/3DXRD_work_dir/Au_layer0_det0_50bg.h5'
-raw_h5file: '/Users/yetian/Desktop/3DXRD/Au_layer0_det0.h5'
-output_png: '/Users/yetian/Desktop/3DXRD_work_dir/Au_layer0_det0_50bg.png'
+proc_file: '/Users/yetian/Desktop/3DXRD_work_dir/nugget_layer0_det0_50bg_t1.flt'
+raw_h5file: '/Users/yetian/Desktop/3DXRD_work_dir/nugget_layer0_det0_50bg.h5'
+output_png: '/Users/yetian/Desktop/3DXRD_work_dir/nugget_2_frames_for_test.png'
 #########################

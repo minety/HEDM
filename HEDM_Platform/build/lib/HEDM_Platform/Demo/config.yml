@@ -10,6 +10,24 @@ generate_ImageD11_files: True
 ImageD11_process: True
 # HEXRD process
 HEXRD_process: False
+#############
+## ImageD11 Mask Options
+# Set the 'apply' option to toggle each mask region
+center_position:
+  x: 988
+  y: 1005
+removal_regions:
+  - start: 0
+    end: 400
+    apply: False
+  - start: 400
+    end: 600
+    apply: False
+  - start: 800
+    end: 1000
+    apply: False
+max_num_frm: 2
+output_png_rm_reg: '/Users/yetian/Desktop/3DXRD_work_dir/removalmask.png'
 #########################
 
 ######## Standardize_format ########
@@ -36,7 +54,7 @@ num_images: 2
 omega: 0.1
 # Background subtraction setting: 25-25 percentile filter, 50-median fitler, 75-75 percentile, etc. Default: 50
 bg_pct: 50
-flip_option: 'h'  # 'v', None, 'hv', default for APS sector 1 is 'h'.
+flip_option: 'r270' # default for APS sector 1 is 'h', options are None, 'h', 'v', 'vh', 't', 'r90', 'r270'.
 #########################
 
 ######## Slice HDF5 file ########

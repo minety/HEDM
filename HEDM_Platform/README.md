@@ -2,6 +2,8 @@
 
 HEDM-Platform represents a holistic and integrated framework designed to consolidate the finest HEDM resources available globally. As an all-encompassing platform, its primary goal is to offer a seamless workflow, encompassing the pre-processing, intermediate processing, and post-processing stages of HEDM data. Crafted with the insights of seasoned professionals, HEDM-Platform addresses the disparities in data standards across various synchrotron radiation sources, including APS, CHESS, SOLEIL, DESY, and more. Beyond just being a toolkit, it serves as a unified platform that empowers users to juxtapose and discern the merits and demerits of predominant software in the field. A standout feature of the platform is its embrace of AI capabilities, leveraging tools like ilastik, with an eye on future integrations and expansions into deep learning realms. This strategic incorporation of AI is pivotal in addressing intricate challenges, especially when processing data marked by pronounced strain, streak-like patterns, and substantial overlaps.
 
+<img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/image_test.png" alt="Test_image" width="800"/>
+
 Currently, the platform amalgamates and builds upon various open-source software, including HEXRD, ImageD11, HEXOMAP, and ilastik. The corresponding links are:
 - [HEXRD](https://github.com/HEXRD)
 - [ImageD11](https://github.com/FABLE-3DXRD/ImageD11)

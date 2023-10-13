@@ -18,6 +18,7 @@ from ImageD11 import sparseframe, cImageD11, columnfile
 import pkg_resources
 import matplotlib.pyplot as plt
 from skimage import draw
+from skimage import exposure
 from matplotlib.patches import Circle
 
 class HEDM_Platform:
@@ -38,6 +39,7 @@ class HEDM_Platform:
         self.num_images = self.params.get('num_images', None)
         self.omega = self.params.get('omega', None)
         self.bg_pct = self.params.get('bg_pct', None)
+        self.nframes = self.params.get('nframes', None) 
         self.bg_nf = self.params.get('bg_nf', None) 
         self.bgsub_h5 = self.params.get('bgsub_h5_file', None)
         self.bgsub = self.params.get('bgsub', True)
@@ -89,7 +91,7 @@ class HEDM_Platform:
         self.center_position_y = self.params.get('center_position', {}).get('y', 1005)
         self.max_num_frm = self.params.get('max_num_frm', 2)
         self.removal_regions = self.params.get('removal_regions', [])
-        self.output_png_rm_reg = self.params.get('output_png_rm_reg', None) 
+        self.output_png_rm_reg = self.params.get('output_png_rm_reg', None)
 
     def convert(self, *args, **kwargs):
         raise NotImplementedError("Subclass should implement this method")
@@ -286,7 +288,7 @@ class HEDM_Platform:
         omw.addwedge(0, nf*omega, nf)
         ims.metadata['omega'] = omw.omegas
 
-        # Make dark image from first 100 frames
+        # Make dark image from firstnf_to_use frames
         pct = self.bg_pct
         nf_to_use = self.bg_nf
         dark = imageseries.stats.percentile(ims, pct, nf_to_use)
@@ -299,6 +301,7 @@ class HEDM_Platform:
 
         # Save the processed imageseries in hdf5 format
         imageseries.write(pimgs, self.bgsub_h5,'hdf5', path='/imageseries')
+        return np.array(pimgs[0])
 
     def hdf5slice(self, input_file, slice_path):
         with h5py.File(input_file, 'r') as f:
@@ -390,21 +393,16 @@ class HEDM_Platform:
         )
 
         # Input of omega meta data
-        nf = self.bg_nf  #720
+        nf = self.nframes  #720
         omega = self.omega
         omw = OmegaWedges(nf)
         omw.addwedge(0, nf*omega, nf) 
         ims.metadata['omega'] = omw.omegas
 
-        # Make dark image from first 100 frames
-        pct = self.bg_pct
-        nf_to_use = self.bg_nf
-        dark = imageseries.stats.percentile(ims, pct, nf_to_use)
-        # np.save(DarkFile, dark)
-
         # Now, apply the processing options
         ProcessedIS = imageseries.process.ProcessedImageSeries
-        ops = [('dark', dark), ('flip', None)] # None, 'h', 'v', etc.
+        # ops = [('dark', dark), ('flip', None)]  # Comment out to reduce computing time
+        ops = [('flip', None)]
         pimgs = ProcessedIS(ims, ops)
 
         # Save the processed imageseries in npz format
@@ -684,11 +682,11 @@ class HEDM_Platform:
         # Create a figure and axis
         fig, ax = plt.subplots(figsize=(10, 10))
         
-        # Adjust contrast based on percentiles for better visibility
-        vmin = np.percentile(raw_frame, 5)
-        vmax = np.percentile(raw_frame, 95)
+        # Adjust contrast based on the min and max values for better visibility
+        vmin = np.min(raw_frame)
+        vmax = np.max(raw_frame)
         ax.imshow(raw_frame, cmap='gray_r', origin='lower', vmin=vmin, vmax=vmax)
-        
+
         # Check if it's an h5 file and plot its content
         if self.proc_file.endswith('.h5'):
             proc_frame = self.load_frame(self.proc_file)
@@ -706,7 +704,7 @@ class HEDM_Platform:
             # Overlay empty circles on the raw frame
             for s, f in zip(proc_s, proc_f):
                 if 0 <= s < raw_frame.shape[0] and 0 <= f < raw_frame.shape[1]:
-                    circle = Circle((f, s), radius=15, edgecolor='r', facecolor='none', linewidth=1.5)
+                    circle = Circle((f, s), radius=15, edgecolor='r', facecolor='none', linewidth=1.5, alpha=0.5)
                     ax.add_patch(circle)
 
         # Placeholder for the npz loading logic
@@ -821,7 +819,7 @@ class Process_with_ilastik(HEDM_Platform):
             subprocess.run([
                 self.ilastik_loc,
                 '--headless',
-                f'--cutout_subregion=[(0,0,0,0),({self.bg_nf},2048,2048,1)]',
+                f'--cutout_subregion=[(0,0,0,0),({self.nframes},2048,2048,1)]',
                 '--pipeline_result_drange=(0.0,1.0)',
                 '--export_drange=(0,100)',
                 f'--output_filename_format={output_file}',
@@ -904,7 +902,7 @@ def load_config(file_path):
 
 def main():
     parser = argparse.ArgumentParser(description='Process some parameters.')
-    parser.add_argument('command', choices=['check_file', 'rm_mask','stand', 'sub', 'ilastik', 'hedm_formats', 'all', 'slice', 'ff_HEDM_process', 'vis_diff'])
+    parser.add_argument('command', choices=['check_file', 'check_flip','rm_mask','stand', 'sub', 'ilastik', 'hedm_formats', 'all', 'slice', 'ff_HEDM_process', 'vis_diff'])
     parser.add_argument('config_file')
     args = parser.parse_args()
 
@@ -919,8 +917,8 @@ def main():
         print('Error loading configuration')
         sys.exit()
 
-    # Calculate bg_nf and add it to the params
-    params['bg_nf'] = params['num_images'] - params['empty_images']
+    # Calculate nframes and add it to the params
+    params['nframes'] = params['num_images'] - params['empty_images']
 
     # Create output directory only if generate_hexomap_files is True
     if params.get('generate_hexomap_files', False):

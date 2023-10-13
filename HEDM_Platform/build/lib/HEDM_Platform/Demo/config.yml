@@ -53,10 +53,10 @@ num_images: 2
 # omega: rotation angle for each rotation step of the motor
 omega: 0.1
 # number of frames to use for bg_sub
-bg_nf: 10
+bg_nf: 2
 # Background subtraction setting: 25-25 percentile filter, 50-median fitler, 75-75 percentile, etc. Default: 50
 bg_pct: 50
-flip_option: 'vh' # default for APS sector 1 is 'h', options are None, 'h', 'v', 'vh', 't', 'r90', 'r270'.
+flip_option: 'v' # default for APS sector 1 is 'h', options are None, 'h', 'v', 'vh', 't', 'r90', 'r270'.
 #########################
 
 ######## Slice HDF5 file ########
@@ -71,8 +71,8 @@ slice_images: 1
 ilastik_loc: '/Applications/ilastik-1.4.0-OSX2.app/Contents/ilastik-release/run_ilastik.sh'
 # ilastik project file which need user manually generate from ilastik GUI version
 ilastik_project_file: '/Users/yetian/Desktop/3DXRD_work_dir/nugget_test.ilp'
-# # file to be processed by ilastik other than default pipeline
-# ilastik_input: '/Users/yetian/Desktop/3DXRD_work_dir/nugget_layer0_det0_50bg.h5'
+# file to be processed by ilastik other than default pipeline
+ilastik_input: '/Users/yetian/Desktop/3DXRD_work_dir/nugget_layer0_det0_50bg.h5'
 #########################
 
 ######## Convert_to_hedm_formats ########
@@ -89,7 +89,7 @@ ilastik_project_file: '/Users/yetian/Desktop/3DXRD_work_dir/nugget_test.ilp'
 ### ff-HEDM options ###
 ##### Additional option #####
 ## Parameters for convert hdf5 to ff-HEDM formats without ilastik processed (Users can specify the other raw dataset by themselves but have to be hdf5 files with correct path.)
-input_file_ff: '/Users/yetian/Desktop/3DXRD_work_dir/nugget_layer0_det0_50bg.h5' # None
+input_file_ff: '/Users/yetian/Desktop/3DXRD_work_dir/nugget_layer0_det0_50bg.h5'
 #########################
 
 ######## ff_HEDM_process ########

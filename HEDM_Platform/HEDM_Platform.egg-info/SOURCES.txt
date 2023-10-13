@@ -12,10 +12,15 @@ HEDM_Platform/Demo/config.yml
 HEDM_Platform/Demo/nugget_2_frames_for_test.h5
 HEDM_Platform/Demo/nugget_layer0_det0.par
 HEDM_Platform/Demo/nugget_layer0_det0_for_test.flt
-HEDM_Platform/data/image_test.png
+HEDM_Platform/data/ff_HEDM_process.jpg
+HEDM_Platform/data/hedm_formats.jpg
+HEDM_Platform/data/ilastik.jpg
+HEDM_Platform/data/ilastik_a.jpg
+HEDM_Platform/data/ilastik_b.jpg
 HEDM_Platform/data/imaged11_dx.edf
 HEDM_Platform/data/imaged11_dy.edf
 HEDM_Platform/data/stand.jpg
+HEDM_Platform/data/sub.jpg
 HEDM_Platform/scripts/clean_flt.py
 HEDM_Platform/scripts/fitting.py
 HEDM_Platform/scripts/gen_flt.py

@@ -12,6 +12,7 @@ HEDM_Platform/Demo/config.yml
 HEDM_Platform/Demo/nugget_2_frames_for_test.h5
 HEDM_Platform/Demo/nugget_layer0_det0.par
 HEDM_Platform/Demo/nugget_layer0_det0_for_test.flt
+HEDM_Platform/data/AI_HEDM-Recovered.png
 HEDM_Platform/data/ff_HEDM_process.jpg
 HEDM_Platform/data/hedm_formats.jpg
 HEDM_Platform/data/ilastik.jpg

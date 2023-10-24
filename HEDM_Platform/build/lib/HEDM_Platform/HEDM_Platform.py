@@ -233,6 +233,34 @@ class HEDM_Platform:
             for i, img in enumerate(image_data):
                 dataset[i] = img
 
+    def npz2hdf5(self):
+        ims = imageseries.open(
+            self.input_file,
+            format='frame-cache'
+        )
+
+        # Input of omega meta data
+        nf = self.nframes  #720
+        omega = self.omega
+        omw = OmegaWedges(nf)
+        omw.addwedge(0, nf*omega, nf) 
+        ims.metadata['omega'] = omw.omegas
+
+        # Now, apply the processing options
+        ProcessedIS = imageseries.process.ProcessedImageSeries
+        # ops = [('dark', dark), ('flip', None)]  # Comment out to reduce computing time
+        ops = [('flip', None)]
+        pimgs = ProcessedIS(ims, ops)
+
+        # Write to a temporary path
+        temp_path = '/temp_imageseries'
+        imageseries.write(pimgs, self.output_file, 'hdf5', path=temp_path)
+
+        # Now, open the file and rename the group
+        with h5py.File(self.output_file, 'a') as f:
+            f.move(temp_path + '/images', '/images')
+            del f[temp_path]
+
     def hdf5_to_hdf5(self):
         # Paths to check in the HDF5 file if dataset_path is not provided in the configuration
         possible_paths = ['/imageseries/images', '/images', '/flyscan_00001/scan_data/orca_image']
@@ -791,9 +819,12 @@ class Standardize_format(HEDM_Platform):
         elif self.input_format in ('.tif', '.tiff'):
             print("Converting from .tif format to .h5...")
             self.tif2hdf5()
-        elif self.input_format in ('.hdf5', '.h5', '.nxs'):  # Added .nxs here
-            print("Converting from .h5/.nxs format to .h5...")  # Updated the message to include .nxs
+        elif self.input_format in ('.hdf5', '.h5', '.nxs'):  
+            print("Converting from .h5/.nxs format to .h5...")
             self.hdf5_to_hdf5()
+        elif self.input_format in ('.npz'):  
+            print("Converting from .npz format to .h5...")
+            self.npz2hdf5()
         else:
             print(f"Unsupported input format: {self.input_format}")
 

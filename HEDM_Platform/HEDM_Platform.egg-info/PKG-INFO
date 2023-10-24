@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: HEDM-Platform
-Version: 0.1.8
+Version: 0.2.1
 Summary: Platform for High Energy Diffraction Microscopy (HEDM) Analysis, also known as 3D X-ray Diffraction (3DXRD)
 Home-page: https://github.com/HurleyGroup/HEDM-Platform/tree/main/HEDM_Platform
 Author: Ye Tian
@@ -134,7 +134,7 @@ nugget_layer0_det0.par
    - In the feature selection section (shown in the image on the left), ensure you set it to 2D. This step is crucial to avoid excessive computational overhead during subsequent processing.
    - Finally, refer to the image on the right to configure spots and background settings. Engage in manual adjustments and training. Ensure you follow the sequence shown in the image.
 
-   <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/ilastik_a.jpg" alt="ilastik_a" width="600"/> <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/ilastik_b.jpg" alt="ilastik_b" width="200"/>
+   <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/ilastik_a.jpg" alt="ilastik_a" width="550"/> <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/ilastik_b.jpg" alt="ilastik_b" width="180"/>
 
    Once you have made the necessary adjustments, execute the following command:
 

@@ -117,7 +117,7 @@ nugget_layer0_det0.par
    - In the feature selection section (shown in the image on the left), ensure you set it to 2D. This step is crucial to avoid excessive computational overhead during subsequent processing.
    - Finally, refer to the image on the right to configure spots and background settings. Engage in manual adjustments and training. Ensure you follow the sequence shown in the image.
 
-   <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/ilastik_a.jpg" alt="ilastik_a" width="600"/> <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/ilastik_b.jpg" alt="ilastik_b" width="200"/>
+   <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/ilastik_a.jpg" alt="ilastik_a" width="550"/> <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/ilastik_b.jpg" alt="ilastik_b" width="180"/>
 
    Once you have made the necessary adjustments, execute the following command:
 

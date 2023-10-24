@@ -6,7 +6,7 @@ The journey of refining diffraction patterns is riddled with challenges. Confron
 
 The image below illustrates the transformative power of our processing techniques. In panel 'b', we see a single frame of nugget sandstone's FF-HEDM diffraction pattern. When we extract area 1 and juxtapose the results of a simple median filter ('a-1') with the outcome post-ilastik processing ('a-2'), the distinction is palpable. The spots post-ilastik are not only discernible but also well-separated, ready for subsequent calibration software which requires only a rudimentary intensity filter. In fact, post-ilastik, the intensity essentially represents a spot's probability, ranging from 0-100. Panel 'c' portrays a more intricate scenario. A basic median filter falls short, evident in 'c-1'. However, after processing with ilastik across the full range of 0-100 ('c-2'), spot calibration becomes feasible. Elevating the probability value further to 80-100 in 'c-3' refines the distinction, effectively resolving the area's spots.
 
-![AI_HEDM-Recovered](https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/AI_HEDM-Recovered.jpg)
+  <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/AI_HEDM.png" alt="AI_HEDM" width="800"/>
 
 Currently, the platform amalgamates and builds upon various open-source software, including HEXRD, ImageD11, HEXOMAP, and ilastik. The corresponding links are:
 - [HEXRD](https://github.com/HEXRD)

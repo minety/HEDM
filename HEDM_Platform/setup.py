@@ -5,7 +5,7 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 setup(
     name='HEDM_Platform',
-    version='0.2.1',
+    version='0.2.2',
     author='Ye Tian',
     author_email='ytian6688@hotmail.com, ytian37@jhu.edu',
     entry_points={

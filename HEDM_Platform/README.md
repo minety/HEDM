@@ -282,6 +282,18 @@ HEXRD_Materials.h5
    hedm-platform int_images config.yml
    ```
 
+   **3. NF HEDM Format Export**:
+
+   To effectively process nf-HEDM data, it's advisable to first convert .tif files into HDF5 format for pre-processing. After processing the data, you should select 'True' in the options shown in the image below (Area 1) to export .tif files.
+
+   <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/nf_hedm_format.jpg" alt="nf_hedm_format" width="800"/>
+
+   - **Area 1**: Choose 'True' to enable the export of .tif files. This setting triggers the creation of a new folder based on the `sample_name` and the conversion of HDF5 files into Hexomap-compatible .tif files.
+
+   - **Area 2**: An option for applying a simple threshold to .tif files. This feature is particularly useful when fine-tuning the data for specific analysis requirements.
+
+   Note: When initially inputting .tif files, you can set the 'Generate ff-HEDM Formats' option to 'False' if you are only dealing with nf-HEDM data. This helps streamline the processing by bypassing unnecessary format conversions.
+
 ---
 
 For any questions or suggestions, please contact ytian6688@hotmail.com/ytian37@jhu.edu or rhurley6@jhu.edu.

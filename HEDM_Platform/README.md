@@ -286,8 +286,8 @@ HEXRD_Materials.h5
 
 For any questions or suggestions, please contact ytian6688@hotmail.com/ytian37@jhu.edu or rhurley6@jhu.edu.
 
-License: HEDM-Platform is distributed under the terms of the BSD 3-Clause license. All new contributions must be made under this license.
+License: HEDM-Platform is distributed under the BSD 3-Clause license, with all new contributions adhering to this license.
 
-Developed primarily within Prof. Ryan Hurley's research group at Johns Hopkins University (JHU), the HEDM-Platform software package is the creation of Ye Tian. Additionally, it is important to recognize that the author's work during his time with Prof. Todd Hufnagel's group also contributed to the development of this software.
+The HEDM-Platform software package was chiefly developed by Ye Tian during his postdoctoral stint in Prof. Ryan Hurley's research group at Johns Hopkins University (JHU). This phase was characterized by significant advancements and contributions to the project. Additionally, the insights gained from Ye Tian's time with Prof. Todd Hufnagel's group also played a part in shaping the development of the software.
 
 ---

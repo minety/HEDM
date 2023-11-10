@@ -16,6 +16,7 @@ HEDM_Platform/Demo/nugget_2_frames_for_test.h5
 HEDM_Platform/Demo/nugget_layer0_det0.par
 HEDM_Platform/Demo/nugget_layer0_det0_for_test.flt
 HEDM_Platform/data/AI_HEDM.png
+HEDM_Platform/data/HEDM_image.jpg
 HEDM_Platform/data/check.jpg
 HEDM_Platform/data/ff_HEDM_process_1.jpg
 HEDM_Platform/data/ff_HEDM_process_2.jpg

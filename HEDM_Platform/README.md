@@ -1,4 +1,10 @@
-# HEDM-Platform: An AI-Integrated Framework for Advanced Data Processing
+# An AI-Integrated Framework for Advanced Data Processing in High Energy Diffraction Microscopy (HEDM)
+
+High Energy Diffraction Microscopy (HEDM) is an advanced, non-destructive method that allows for in-situ analysis of the internal changes in materials under various environmental conditions and loads. This technique is particularly adept at detailing morphology, the positions and orientations of grains, and the strain tensor of individual grains. HEDM's ability to simultaneously track the evolution of thousands of grains during loading processes marks a significant advancement in material science. Its compatibility with current trends in big data and AI further amplifies its potential, paving the way for groundbreaking discoveries and applications in the future.
+
+  <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/HEDM_image.png" alt="HEDM_image" width="800"/>
+
+*Caption: HEDM stands as a formidable technique, uniquely capable of characterizing strain tensor, grain orientation, and morphology in granular materials, emphasizing its three-dimensional and in-situ analysis capabilities.* 
 
 HEDM-Platform represents a holistic and integrated framework designed to consolidate the finest HEDM resources available globally. As an all-encompassing platform, its primary goal is to offer a seamless workflow, encompassing the pre-processing, intermediate processing, and post-processing stages of HEDM data. Crafted with the insights of seasoned professionals, HEDM-Platform addresses the disparities in data standards across various synchrotron radiation sources, including APS, CHESS, SOLEIL, DESY, and more. Beyond just being a toolkit, it serves as a unified platform that empowers users to juxtapose and discern the merits and demerits of predominant software in the field. A standout feature of the platform is its embrace of AI capabilities, leveraging tools like ilastik, with an eye on future integrations and expansions into deep learning realms.
 
@@ -272,12 +278,16 @@ HEXRD_Materials.h5
 
    In essence, this function plays a crucial role in handling and analyzing NF HEDM data, optimizing the integration process to balance resolution and computational efficiency. By adapting these areas as needed, researchers can tailor the process to their specific experimental conditions and requirements.
 
+   ```
+   hedm-platform int_images config.yml
+   ```
+
 ---
 
-For any questions, please contact ytian37@jhu.edu/ytian6688@hotmail.com or rhurley6@jhu.edu.
+For any questions or suggestions, please contact ytian6688@hotmail.com/ytian37@jhu.edu or rhurley6@jhu.edu.
 
 License: HEDM-Platform is distributed under the terms of the BSD 3-Clause license. All new contributions must be made under this license.
 
-This software package was predominantly developed by the author, Ye Tian, within Prof. Ryan Hurley's research group at Johns Hopkins University (JHU). Acknowledgments are also due for certain contributions made during the author's affiliation with Prof. Todd Hufnagel's research group.
+Developed primarily within Prof. Ryan Hurley's research group at Johns Hopkins University (JHU), the HEDM-Platform software package is the creation of Ye Tian. Additionally, it is important to recognize that the author's work during his time with Prof. Todd Hufnagel's group also contributed to the development of this software.
 
 ---

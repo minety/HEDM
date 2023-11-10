@@ -1,0 +1,59 @@
+beam:
+  energy: 71.676
+  vector:
+    azimuth: 90.0
+    polar_angle: 90.0
+calibration_crystal:
+  0:
+    inv_stretch:
+    - 1.0
+    - 1.0
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+    orientation:
+    - 0
+    - 0
+    - 0
+    position:
+    - 0.0
+    - 0.0
+    - 0.0
+detectors:
+  GE:
+    buffer:
+    - 2
+    - 2
+    distortion:
+      function_name: GE_41RT
+      parameters:
+      - 0.000164
+      - -1.235e-5
+      - 1.37e-5
+      - 108.2033048
+      - 0.24059389
+      - -2.12985674
+    pixels:
+      columns: 2048
+      rows: 2048
+      size:
+      - 0.2
+      - 0.2
+    saturation_level: 14000.0
+    transform:
+      tilt:
+      - 0.0
+      - 0.0
+      - 0.0
+      translation:
+      - -0.62
+      - 6.48
+      - -1198.76
+id: instrument
+oscillation_stage:
+  chi: 0.0
+  translation:
+  - 0.0
+  - 0.0
+  - 0.0

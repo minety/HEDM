@@ -61,20 +61,12 @@ def newpks(hf, scans=None, npixels=1, monitor=None, monval=1e3):
     for t in titles:
         c[t] = np.concatenate(c[t])
     return c
-
-
-class spatial:
-    def __init__(self, dxfile, dyfile):
-        self.dx = fabio.open(dxfile).data
-        self.dy = fabio.open(dyfile).data
-
+    
+class Spatial:
     def __call__(self, pks):
-        si = np.round(pks['s_raw']).astype(int)
-        fi = np.round(pks['f_raw']).astype(int)
-        pks['sc'] = self.dy[si, fi] + pks['s_raw']
-        pks['fc'] = self.dx[si, fi] + pks['f_raw']
+        pks['sc'] = pks['s_raw']
+        pks['fc'] = pks['f_raw']
         return pks
-
 
 def tocolf(pks):
     colf = columnfile.newcolumnfile(titles=list(pks.keys()))
@@ -89,8 +81,6 @@ if __name__ == "__main__":
     sparsename = sys.argv[2]
     filtername = sys.argv[3]
     par_file = sys.argv[4]
-    dx_file = sys.argv[5]
-    dy_file = sys.argv[6]
 
     with h5py.File(outname, 'r') as hin:
         scan_path = get_scan_path(hin)
@@ -100,7 +90,7 @@ if __name__ == "__main__":
             im_dataset = hin[scan_path + '/images']
         frm = im_dataset[1, :, :]
 
-    spat = spatial(dx_file, dy_file)
+    spat = Spatial()
     sparsename_load = sparsename
 
     with h5py.File(sparsename_load, 'r') as hin:

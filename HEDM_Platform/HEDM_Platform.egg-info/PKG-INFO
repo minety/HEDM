@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: HEDM-Platform
-Version: 0.2.2
+Version: 0.3.6
 Summary: Platform for High Energy Diffraction Microscopy (HEDM) Analysis, also known as 3D X-ray Diffraction (3DXRD)
 Home-page: https://github.com/HurleyGroup/HEDM-Platform/tree/main/HEDM_Platform
 Author: Ye Tian
@@ -15,9 +15,15 @@ Classifier: Programming Language :: Python :: 3.10
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
 
-# HEDM-Platform
+# HEDM-Platform: An AI-Integrated Framework for Advanced Data Processing
 
-HEDM-Platform represents a holistic and integrated framework designed to consolidate the finest HEDM resources available globally. As an all-encompassing platform, its primary goal is to offer a seamless workflow, encompassing the pre-processing, intermediate processing, and post-processing stages of HEDM data. Crafted with the insights of seasoned professionals, HEDM-Platform addresses the disparities in data standards across various synchrotron radiation sources, including APS, CHESS, SOLEIL, DESY, and more. Beyond just being a toolkit, it serves as a unified platform that empowers users to juxtapose and discern the merits and demerits of predominant software in the field. A standout feature of the platform is its embrace of AI capabilities, leveraging tools like ilastik, with an eye on future integrations and expansions into deep learning realms. This strategic incorporation of AI is pivotal in addressing intricate challenges, especially when processing data marked by pronounced strain, streak-like patterns, and substantial overlaps.
+HEDM-Platform represents a holistic and integrated framework designed to consolidate the finest HEDM resources available globally. As an all-encompassing platform, its primary goal is to offer a seamless workflow, encompassing the pre-processing, intermediate processing, and post-processing stages of HEDM data. Crafted with the insights of seasoned professionals, HEDM-Platform addresses the disparities in data standards across various synchrotron radiation sources, including APS, CHESS, SOLEIL, DESY, and more. Beyond just being a toolkit, it serves as a unified platform that empowers users to juxtapose and discern the merits and demerits of predominant software in the field. A standout feature of the platform is its embrace of AI capabilities, leveraging tools like ilastik, with an eye on future integrations and expansions into deep learning realms.
+
+The journey of refining diffraction patterns is riddled with challenges. Confronted by a broad dynamic range, the simultaneous recognition of varying intensity spots becomes an arduous task. The task becomes even more formidable when diffraction spots cluster densely or when high strain produces streak-like spots. To navigate these intricacies, initial efforts were heavily rooted in rule-based methods, primarily using singular decision trees. However, these rules, while effective for overlapping spots, were inadequate for broader dynamic ranges. The cumulative addition of rules inadvertently led to biases, each rule potentially excluding specific spots. This prompted a pivotal shift in perspective: the core challenge was the differentiation of these spot types, sidelining the need for rule interpretability. Embracing this revelation, AI was integrated, steering the focus towards attaining precision and accuracy, superseding mere rule interpretability.
+
+The image below illustrates the transformative power of our processing techniques. In panel 'b', we see a single frame of nugget sandstone's FF-HEDM diffraction pattern. When we extract area 1 and juxtapose the results of a simple median filter ('a-1') with the outcome post-ilastik processing ('a-2'), the distinction is palpable. The spots post-ilastik are not only discernible but also well-separated, ready for subsequent calibration software which requires only a rudimentary intensity filter. In fact, post-ilastik, the intensity essentially represents a spot's probability, ranging from 0-100. Panel 'c' portrays a more intricate scenario. A basic median filter falls short, evident in 'c-1'. However, after processing with ilastik across the full range of 0-100 ('c-2'), spot calibration becomes feasible. Elevating the probability value further to 80-100 in 'c-3' refines the distinction, effectively resolving the area's spots.
+
+  <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/AI_HEDM.png" alt="AI_HEDM" width="800"/>
 
 Currently, the platform amalgamates and builds upon various open-source software, including HEXRD, ImageD11, HEXOMAP, and ilastik. The corresponding links are:
 - [HEXRD](https://github.com/HEXRD)
@@ -68,6 +74,9 @@ config.yml
 nugget_2_frames_for_test.h5
 nugget_layer0_det0_for_test.flt
 nugget_layer0_det0.par
+Au_ff_demo.npz
+hexrd_Au_detector.yml
+HEXRD_Materials.h5
 ```
 **Note**: Due to the need for manual completion of the ilastik project file within the ilastik visual interface, and the large size of the project file making it unsuitable for packaging within this platform, users are required to export it on their own and place it in the appropriate directory. Make sure to update the necessary paths in the `config.yml` file accordingly.
 
@@ -79,17 +88,27 @@ nugget_layer0_det0.par
 
   <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/stand.jpg" alt="stand" width="800"/>
 
-  - **Area 1**: This represents the working directory, which should have the same name as the previously copied `copy_demo` folder.
-  
-  - **Area 2**: This signifies the prefix of the file names. For the 'demo', there's no need to change this. However, users can adjust it based on their requirements for other files.
-  
-  - **Area 3**: Represents the file names that require standardization. Currently, the supported formats are .ge and .h5 files.
-  
-  - **Area 4**: These are the empty frames. Often, many beamtimes include some empty frames to prevent data misalignment issues when the motor begins to rotate.
-  
-  - **Area 5**: This denotes the total number of frames in the entire dataset, which includes the empty frames.
+   - **Area 1**: This is the input folder for standardized processing of NF HEDM TIFF files, corresponding to Area 7. To process NF files, comment out Area 8 and uncomment Area 7.
+   
+   - **Area 2**: This refers to the number of empty frames in the dataset which will be removed during the standardization process.
+   
+   - **Area 3**: This designates the working directory.
+   
+   - **Area 4**: This is the name of the sample being processed, which is related to file naming in subsequent processes.
+   
+   - **Area 5**: Indicates the first frame of the NF HEDM TIFF files to start processing. If processing FF, this can be disregarded.
+   
+   - **Area 6**: FF HEDM is only related to naming conventions, while NF is related to batch processing.
+   
+   - **Area 7**: Sample input file format for NF HEDM.
+   
+   - **Area 8**: Sample input file format for FF HEDM.
+   
+   - **Area 9**: The total number of frames in the dataset.
+   
+   - **Area 10**: The motor rotation step size during the data collection process.
 
-  After updating these five sections, run the following command to standardize the data:
+   After updating these ten sections, execute the following command to standardize the data:
 
   ```
   hedm-platform stand config.yml
@@ -101,15 +120,13 @@ nugget_layer0_det0.par
 
    <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/sub.jpg" alt="sub" width="800"/>
 
-  - **Area 1**: This represents the step size of the rotation angle.
-  
-  - **Area 2**: Denotes the number of frames used for the percentile filter. Typically, this count should cover at least a quarter of the rotation, equivalent to 90 degrees.
-  
-  - **Area 3**: This is the specific percentile value. While the standard is set at 50, in instances where there's excessive noise or when spots overlap considerably, this might need adjustment to 75%, or even 95% in some cases. The precise value to be used should be determined based on the specific data set.
-  
-  - **Area 4**: This introduces the option to flip the data. Often, the pattern viewed from the upstream during data collection might be flipped compared to the pattern collected by the detector. In such cases, adjustments are needed. Seven flipping scenarios are provided for selection. It's recommended to consult with the beamline scientist for correct calibration.
+   - **Area 1**: Indicates the number of frames to be used for background subtraction, which is essential for enhancing data quality by removing unwanted static signals from the images.
 
-  Once the necessary modifications have been made, execute the following command to reduce background noise:
+   - **Area 2**: Specifies the filter to apply for background subtraction. The number represents the statistical percentile, with 50 corresponding to the median filter which is voxel-based and effective for a variety of datasets.
+
+   - **Area 3**: This area is dedicated to the flip option, requiring users to employ trial and error to determine the right setting. Users at APS beamline 1-ID can opt for the 'h' setting for their experiments.
+
+   After configuring these settings, run the designated command to perform background subtraction and reduce noise in your dataset.
 
   ```
   hedm-platform sub config.yml
@@ -150,9 +167,13 @@ nugget_layer0_det0.par
 
    <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/hedm_formats.jpg" alt="hedm_formats" width="800"/>
 
-  - **Red Highlighted Area**: If set, this will bypass the ilastik processing and directly convert the standardized files to HEDM-related formats. If you've opted to process using the ilastik step, you should comment out this section. The software will then use the default pipeline, eliminating the need for users to input file names manually.
+   - **Area 1**: This allows users to choose the generated file format related to HEDM. Selecting the appropriate format here is essential for subsequent analysis steps.
 
-   After making the necessary adjustments, execute the following command:
+   - **Area 2**: Indicates the mask for ImageD11 processing. To apply a mask to FLT files, run the `hedm-platform rm_mask config.yml` command prior to this step. Executing this command will create a `removalmask.npy` file for programmatic use. Users can also fine-tune the mask's parameters by trial and error with `removalmask.png`, where data in the red annular regions will be excluded from the analysis.
+
+   - **Area 3**: Choose `False` if bypassing ilastik processing, which will prompt the system to automatically import the corresponding files, such as `*_50bg.h5`. If `True` is selected, you must perform the ilastik steps to generate `*_ilastik_proc.h5` files. If there's a need to process other file names beyond these two formats, you can uncomment Area 4 to accommodate this.
+
+   After setting these areas as needed, proceed with the command to process your data accordingly.
 
    ```
    hedm-platform hedm_formats config.yml
@@ -169,38 +190,104 @@ nugget_layer0_det0.par
 
    Begin by modifying the `config.yml` file as illustrated below:
 
-   <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/ff_HEDM_process.jpg" alt="ff_HEDM_process" width="800"/>
+   <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/ff_HEDM_process_1.jpg" alt="ff_HEDM_process_1" width="800"/>
 
-  - **Area 1**: This signifies the crystal structure.
-  
-  - **Area 2**: Defines the range of hkl to search for (note that counting starts from 0).
-  
-  - **Area 3**: Represents the total number of peaks and the distinct peaks.
-  
-  - **Area 4**: Specifies the decreasing tolerance sequence during the search process.
-  
-  - **Area 5**: This is the minimum tolerance for the distance between two grains (measured in micrometers).
-  
-  - **Area 6**: Refers to the constant background subtraction when generating the .flt file. Note that if the data has been processed by ilastik, the intensity value ranges from 0 to 100, corresponding to the probability of spot detection. If the data hasn't been processed by ilastik, users might need to review the intensity value distribution in the h5 file before generating the .flt file to determine the appropriate value.
-  
-  - **Area 7**: This is the file name prefix.
-  
-  - **Area 8**: Specifies the tolerance for grain orientation angles.
-  
-  - **Area 9**: Defines the search range, represented as the radius of the search cylinder (measured in micrometers).
-  
-  - **Area 10**: Represents the height of the search range (measured in micrometers).
-  
-  - **Area 11**: Indicates the number of CPUs used for parallel processing. If you wish to utilize all available CPUs, comment out this section.
+   - **Area 1**: Select the ff-HEDM analysis software. This includes index (imaged11) / find-orientation (hexrd) primarily for identifying grains and their corresponding orientations and translations (for imaged11, hexrd only includes orientation; translation is obtained subsequently during fitting) and fit primarily for fitting to obtain more accurate translations (positions) and strain tensors.
+   
+   - **Area 2**: Crystal structure.
+   
+   - **Area 3**: Indexing to find grains' hkls.
+   
+   - **Area 4**: Number of peaks and number of unique peaks found in grains.
+   
+   - **Area 5**: Tolerance sequence during indexing.
+   
+   - **Area 6**: Tolerance distance between grains.
+   
+   - **Area 7**: Threshold for generating .flt files. This needs adjustment; if the intensity is processed by ilastik, it ranges from 0 to 100, which is quite standard. If not processed by ilastik, the intensity's dynamic range may be vast, and trial and error are needed to experiment.
+   
+   - **Area 8**: File name prefix.
+   
+   - **Area 9**: Orientation angle tolerance.
+   
+   - **Area 10**: Search cylinder radius and search height.
+   
+   - **Area 11**: Number of CPUs to use for parallel processing.
 
-   After making the necessary adjustments, execute the following command:
+   <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/ff_HEDM_process_2.jpg" alt="ff_HEDM_process_2" width="800"/> 
+
+   - **Area 1**: Names for the find-orientation and fit-grains analyses. These should have distinct names to avoid conflicts as they involve operations like folder generation.
+
+   - **Area 2**: Parameters for resource usage.
+
+   - **Area 3**: Contains a multitude of crystallographic information pertaining to various materials.
+
+   - **Area 4**: Selection of the material to analyze from the list provided in the file above.
+
+   - **Area 5**: The two-theta search range. During the find-orientation process, it's necessary to specify the two-theta width for hkls, which is best verified in the GUI version to prevent overlap.
+
+   - **Area 6**: The input npz file.
+
+   - **Area 7**: Detector parameters that include tilt and beam energy, among others. These should be exported from the GUI version after calibration.
+
+   - **Area 8**: A constant threshold added on top of the npz file.
+
+   - **Area 9**: The hkls for find-orientation.
+
+   - **Area 10**: Preliminary first-level screening.
+
+   - **Area 11**: Tolerances for several angles, usually 1 degree is adequate and doesn't require adjustment.
+
+   - **Area 12**: The range of data scanning, with the entire rotation angle being of utmost importance.
+
+   - **Area 13**: Eta and misorientation tolerance, typically 1 degree is sufficient without needing changes.
+
+   - **Area 14**: This is the ratio of the found spots within the search range to the expected number of spots, with a ratio of 1 indicating all spots were found.
+
+   - **Area 15**: The threshold for the subsequent fit-grains process, which can generally be lower since fitting will be based on all spots and includes a peaks fitting process.
+
+   - **Area 16**: Tolerance sequence for narrowing down the three key parameters during the fit-grains process: two-theta (tth), and the others being self-explanatory.
+
+   - **Area 17**: Initially, it's better to have a larger range, especially for natural sandstone.
+
+   - **Area 18**: The maximum two-theta value, which should not exceed the usable area on the detector; this should be checked with the GUI version.
+
+   Once you have tailored the `config.yml` file with the above parameters, executing the following command will generate the requisite yml files for hexrd software automatically, which are then utilized by the software for analysis.
 
    ```
    hedm-platform ff_HEDM_process config.yml
    ```
 
 ### Additional Useful Features
-(Description of other features can be added here)
+1. **Check File Info**:
+
+  <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/check.jpg" alt="check" width="800"/>
+
+   This function is utilized to check relevant file information, primarily focusing on file formats and the number of frames they contain. For HDF5 files, it also displays path information.
+
+   Let's take the example of the gold npz file included in the `copy_demo` to illustrate the use of this function. The primary modification required is in the `input_file`, corresponding to Area 2. Areas 1 and 3 should also be adjusted according to the content shown in the above image to facilitate testing of subsequent function capabilities.
+
+   npz files are sparse files, a type of lightweight file format that is highly portable and suitable for data storage. We can generate npz files for storage using the `hedm_formats` step. Later, as per the settings shown in the image, the `stand` can be used to convert them back into h5 files if necessary (for instance, for processing with ilastik). After making these modifications, please execute the following command to generate `Au_layer0_det0.h5` for further function testing:
+
+   ```
+   hedm-platform stand config.yml
+   ``` 
+
+   This approach ensures efficient handling and processing of data files in the HEDM analysis workflow.
+
+2. **Integrate images in hdf5**:
+
+  <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/int_images.jpg" alt="int_images" width="800"/>
+
+   The image above shows the configuration for the `int_images` function. 
+
+   - **Area 1**: This is the input file, which in this case is the newly generated standardized HDF5 file containing 1440 frames. 
+
+   - **Area 2**: Here, you specify the output file name. The addition of '1degree' in this example signifies that every 4 frames integrate to cover 1 degree of rotation, a common practice in this type of analysis.
+
+   - **Area 3**: This area is for setting the integration coefficient. The setting is flexible and primarily utilized in NF HEDM processes. Often, due to objective factors in experimental setups that lead to low angular resolution, an integration of 1 degree is sufficient to save on computational costs. This feature can also be applied in FF HEDM for comparative purposes.
+
+   In essence, this function plays a crucial role in handling and analyzing NF HEDM data, optimizing the integration process to balance resolution and computational efficiency. By adapting these areas as needed, researchers can tailor the process to their specific experimental conditions and requirements.
 
 ---
 

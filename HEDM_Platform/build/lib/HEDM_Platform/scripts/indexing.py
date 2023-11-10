@@ -18,8 +18,8 @@ if __name__ == "__main__":
     
     ring1 = list(map(int, ring1_str.split(',')))
     ring2 = list(map(int, ring2_str.split(',')))
-    r2 = int(h)/2     # Beam height/2
-    r2 = int(r2)
+    r = int(h)/2     # Beam height/2
+    r2 = int(r)
 
     gridpars = {
         'DSTOL': 0.004,

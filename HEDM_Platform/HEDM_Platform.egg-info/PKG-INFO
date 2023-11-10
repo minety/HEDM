@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: HEDM-Platform
-Version: 0.3.7
+Version: 0.3.8
 Summary: Platform for High Energy Diffraction Microscopy (HEDM) Analysis, also known as 3D X-ray Diffraction (3DXRD)
 Home-page: https://github.com/HurleyGroup/HEDM-Platform/tree/main/HEDM_Platform
 Author: Ye Tian
@@ -19,9 +19,9 @@ Description-Content-Type: text/markdown
 
 High Energy Diffraction Microscopy (HEDM) is an advanced, non-destructive method that allows for in-situ analysis of the internal changes in materials under various environmental conditions and loads. This technique is particularly adept at detailing morphology, the positions and orientations of grains, and the strain tensor of individual grains. HEDM's ability to simultaneously track the evolution of thousands of grains during loading processes marks a significant advancement in material science. Its compatibility with current trends in big data and AI further amplifies its potential, paving the way for groundbreaking discoveries and applications in the future.
 
-  <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/HEDM_image.png" alt="HEDM_image" width="800"/>
+  <img src="https://raw.githubusercontent.com/HurleyGroup/HEDM-Platform/main/HEDM_Platform/HEDM_Platform/data/HEDM_image.jpg" alt="HEDM_image" width="800"/>
 
-*Caption: HEDM stands as a formidable technique, uniquely capable of characterizing strain tensor, grain orientation, and morphology in granular materials, emphasizing its three-dimensional and in-situ analysis capabilities.* 
+*HEDM stands as a formidable technique, uniquely capable of characterizing strain tensor, grain orientation, and morphology in granular materials, emphasizing its three-dimensional and in-situ analysis capabilities.* 
 
 HEDM-Platform represents a holistic and integrated framework designed to consolidate the finest HEDM resources available globally. As an all-encompassing platform, its primary goal is to offer a seamless workflow, encompassing the pre-processing, intermediate processing, and post-processing stages of HEDM data. Crafted with the insights of seasoned professionals, HEDM-Platform addresses the disparities in data standards across various synchrotron radiation sources, including APS, CHESS, SOLEIL, DESY, and more. Beyond just being a toolkit, it serves as a unified platform that empowers users to juxtapose and discern the merits and demerits of predominant software in the field. A standout feature of the platform is its embrace of AI capabilities, leveraging tools like ilastik, with an eye on future integrations and expansions into deep learning realms.
 

@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chan-signal-studio"
+version = "0.1.0"
+description = "Chan-Signal-Studio: 缠论 (Chan theory) structure analysis, buy/sell point signals and backtesting"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = ["numpy>=1.22", "pandas>=1.5"]
+
+[project.optional-dependencies]
+plot = ["plotly>=5"]
+ashare = ["akshare"]
+crypto = ["ccxt"]
+dev = ["pytest>=7", "plotly>=5"]
+all = ["plotly>=5", "akshare", "ccxt"]
+
+[project.scripts]
+chan-signal-studio = "chan_signal_studio.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["chan_signal_studio*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

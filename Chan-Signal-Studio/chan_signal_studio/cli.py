@@ -13,14 +13,19 @@ from .models import Bar
 
 def _add_source_args(p: argparse.ArgumentParser) -> None:
     g = p.add_argument_group("data source (pick one)")
-    g.add_argument("--csv", help="CSV file with date/open/high/low/close[/volume] columns (English or Chinese headers)")
+    g.add_argument("--csv", help="CSV/TXT (.gz/.zip ok) with OHLC[V]; header in English/Chinese, separate date+time "
+                   "columns, epoch timestamps or no header at all")
     g.add_argument("--demo", action="store_true", help="use synthetic demo data")
     g.add_argument("--akshare", metavar="CODE", help="A-share code via AKShare, e.g. 000001")
     g.add_argument("--ccxt", metavar="SYMBOL", help="crypto symbol via ccxt, e.g. BTC/USDT")
     g.add_argument("--exchange", default="binance", help="ccxt exchange id (default: binance)")
     g.add_argument("--spy", metavar="FREQ", help="free SPY history 2000-2026 resampled to FREQ, e.g. 5min, 30min, 1D "
                    "(downloaded once from github.com/prsdro/spy and cached)")
-    g.add_argument("--session", choices=["rth", "all"], default="rth", help="--spy: regular hours only (default) or all")
+    g.add_argument("--session", choices=["rth", "all"], default=None,
+                   help="keep regular US hours 09:30-16:00 only (rth) or everything (all); default rth for --spy, all for --csv")
+    g.add_argument("--resample", metavar="FREQ", help="--csv: resample to FREQ (e.g. 5min, 30min, 1D) before analysis")
+    g.add_argument("--tz", help="--csv: convert tz-aware/epoch timestamps to this zone, e.g. America/New_York")
+    g.add_argument("--source-tz", help="--csv: zone of naive timestamps in the file, e.g. America/Chicago (converted to --tz)")
     p.add_argument("--freq", default="1d", help="bar frequency for AKShare/ccxt, e.g. 1d, 30m, 1h (default 1d)")
     p.add_argument("--start", help="start date YYYY-MM-DD")
     p.add_argument("--end", help="end date YYYY-MM-DD")
@@ -32,9 +37,9 @@ def _add_source_args(p: argparse.ArgumentParser) -> None:
 
 def _load(args) -> list[Bar]:
     if args.csv:
-        from .data.csv_source import load_csv
+        from .data.base import bars_from_df
 
-        return load_csv(args.csv, args.start, args.end)
+        return bars_from_df(_load_csv_frame(args))
     if args.akshare:
         from .data.akshare_source import AKShareSource
 
@@ -47,12 +52,32 @@ def _load(args) -> list[Bar]:
         from .data.base import bars_from_df
         from .data.spy_history import build_spy_bars
 
-        return bars_from_df(build_spy_bars(args.spy, args.session, args.start, args.end))
+        return bars_from_df(build_spy_bars(args.spy, args.session or "rth", args.start, args.end))
     if args.demo:
         from .data.synthetic import generate_bars
 
         return generate_bars(args.bars, seed=args.seed, start=args.start or "2018-01-02")
     raise SystemExit("no data source: use --csv, --spy, --demo, --akshare or --ccxt")
+
+
+def _load_csv_frame(args):
+    import pandas as pd
+
+    from .data.csv_source import read_ohlcv_csv
+    from .data.resample import filter_session, resample_ohlcv
+
+    df = read_ohlcv_csv(args.csv, tz=args.tz, source_tz=args.source_tz)
+    if args.start:
+        df = df[df.dt >= pd.Timestamp(args.start)]
+    if args.end:
+        df = df[df.dt < pd.Timestamp(args.end) + pd.Timedelta(days=1)]
+    if args.session == "rth":
+        df = filter_session(df.set_index("dt")).reset_index()
+    if args.resample:
+        minutes = pd.Timedelta(args.resample).total_seconds() / 60
+        offset = "30min" if args.session == "rth" and 60 <= minutes < 1440 and minutes % 60 == 0 else None
+        df = resample_ohlcv(df.set_index("dt"), args.resample, offset=offset).reset_index()
+    return df
 
 
 def _config(args) -> ChanConfig:
@@ -141,6 +166,29 @@ def cmd_fetch_spy(args) -> int:
     return 0
 
 
+def cmd_check_data(args) -> int:
+    from .data.quality import compare_to_reference, format_report, quality_report
+
+    if args.spy:
+        from .data.spy_history import build_spy_bars
+
+        df = build_spy_bars(args.spy, args.session or "rth", args.start, args.end)
+    elif args.csv:
+        df = _load_csv_frame(args)
+    else:
+        raise SystemExit("check-data needs --csv or --spy")
+    rep = quality_report(df)
+    cmp = None
+    if args.compare_spy:
+        from .data.spy_history import build_spy_bars
+
+        iv = rep["interval_minutes"] or 5
+        freq = "1D" if iv >= 1440 else f"{int(iv)}min"
+        cmp = compare_to_reference(df, build_spy_bars(freq, session="all" if iv < 1440 else "rth"))
+    print(format_report(rep, cmp))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="chan-signal-studio", description="Chan-Signal-Studio 缠论分析与回测")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -181,6 +229,12 @@ def build_parser() -> argparse.ArgumentParser:
     f.add_argument("--end", help="end date YYYY-MM-DD")
     f.add_argument("--out", help="output CSV (default data/SPY_<freq>_<session>.csv)")
     f.set_defaults(func=cmd_fetch_spy)
+
+    c = sub.add_parser("check-data", help="coverage / gaps / bad prints report for a price file")
+    _add_source_args(c)
+    c.add_argument("--compare-spy", action="store_true",
+                   help="also compare against the free SPY reference (detects adjustment and timezone shifts)")
+    c.set_defaults(func=cmd_check_data)
     return ap
 
 

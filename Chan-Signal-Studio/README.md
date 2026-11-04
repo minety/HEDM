@@ -126,7 +126,7 @@ class MyStrategy(Strategy):
 
 ## 数据源
 
-- `load_csv(path)` / `CSVSource(root)`：自动识别中英文列名。
+- `load_csv(path)` / `read_ohlcv_csv(path)` / `CSVSource(root)`：自动识别中英文列名、日期与时间分两列、Unix 秒/毫秒时间戳、带时区偏移的时间、无表头文件（Kibot / FirstRate Data 风格）、逗号/分号/制表符/空格分隔，以及 .gz/.zip/.bz2/.xz 压缩。`tz` 把带时区的时间转换到指定时区，`source_tz` 指定不带时区的时间属于哪个时区。
 - `bars_from_df(df)`：从任意 DataFrame 构造 K 线。
 - `AKShareSource()`：A 股日/周/月线，以及 1/5/15/30/60 分钟线（东方财富，默认前复权）。
 - `CCXTSource("binance")`：ccxt 支持的任意交易所的 K 线，自动分页。
@@ -135,6 +135,19 @@ class MyStrategy(Strategy):
 - `generate_bars()`：分段切换趋势和震荡的合成数据，用于演示和测试。
 - 想接入其他数据源，继承 `DataSource` 并实现 `get_bars()` 即可。
 
+## 导入你自己的数据
+
+```bash
+# 先体检：周期、覆盖年份、缺口、坏点；--compare-spy 会和免费 SPY 参考数据逐根比对，检查是否复权、时区是否不同
+chan-signal-studio check-data --csv SPY_5min.txt --compare-spy
+
+# 时区不对时：文件里是 UTC（或芝加哥时间）的无时区时间，转换成美东时间
+chan-signal-studio check-data --csv SPY_5min.txt --source-tz UTC --tz America/New_York --compare-spy
+
+# 只保留常规交易时段，或从 1 分钟线重采样成 5 分钟线后再分析、回测
+chan-signal-studio backtest --csv SPY_1min.csv --session rth --resample 5min --market us_stock
+```
+
 ## 测试
 
 ```bash
@@ -142,7 +155,7 @@ pip install -e ".[dev]"
 pytest
 ```
 
-测试覆盖：包含处理与分型、SPY 数据的重采样与清洗、笔的规则、线段的两种情况和线段延伸、中枢构建、各类买卖点、没有未来函数、回测账目核对（5 种市场预设下精确到分）、T+1、一字涨跌停、手续费、CSV/AKShare/ccxt 适配器（用桩替代真实接口）以及命令行。另外在 20 组随机序列上检查了结构上的不变量（线段方向交替、端点是极值、增量构建和全量重建结果一致）。
+测试覆盖：包含处理与分型、各家数据商的文件格式与时区换算、数据体检、SPY 数据的重采样与清洗、笔的规则、线段的两种情况和线段延伸、中枢构建、各类买卖点、没有未来函数、回测账目核对（5 种市场预设下精确到分）、T+1、一字涨跌停、手续费、CSV/AKShare/ccxt 适配器（用桩替代真实接口）以及命令行。另外在 20 组随机序列上检查了结构上的不变量（线段方向交替、端点是极值、增量构建和全量重建结果一致）。
 
 ## 实测：SPY 26 年 5 分钟数据
 

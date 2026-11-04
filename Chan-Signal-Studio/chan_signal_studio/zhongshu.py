@@ -54,12 +54,12 @@ def build_zhongshu(
     Finished pivots whose return move lies before ``first_changed`` are reused
     from ``previous``.
     """
-    out: list[ZhongShu] = []
-    for z in previous:
-        if z.finished and z.end + 1 < first_changed:
-            out.append(z)
-        else:
-            break
+    # Pivots are ordered and only the newest ones can change, so find the
+    # reusable prefix by walking back from the end.
+    k = len(previous)
+    while k > 0 and not (previous[k - 1].finished and previous[k - 1].end + 1 < first_changed):
+        k -= 1
+    out: list[ZhongShu] = list(previous[:k])
     i = out[-1].end + 1 if out else 1
     n = len(moves)
     while i + 2 < n:

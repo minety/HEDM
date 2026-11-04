@@ -45,8 +45,14 @@ def plot_chan(
     show_macd: bool = True,
     cn_colors: bool = True,
     include_plotlyjs: str | bool = "cdn",
+    max_bars: int = 20_000,
+    signal_levels: Sequence[str] | None = None,
 ):
-    """Build (and optionally save) the chart. Returns the plotly Figure."""
+    """Build (and optionally save) the chart. Returns the plotly Figure.
+
+    The last ``max_bars`` bars are embedded (pan left to see them); ``last_n``
+    sets the initially visible window.
+    """
     try:
         import plotly.graph_objects as go
         from plotly.subplots import make_subplots
@@ -56,17 +62,16 @@ def plot_chan(
     bars = analyzer.bars
     if not bars:
         raise ValueError("analyzer has no bars")
-    # Everything is plotted; ``last_n`` only sets the initial zoom (pan left for history).
-    view = max(0, len(bars) - last_n) if last_n else 0
-    start = 0
-    intraday = any(b.dt.hour or b.dt.minute for b in bars)
+    start = max(0, len(bars) - max_bars) if max_bars else 0
+    view = max(start, len(bars) - last_n) if last_n else start
+    window = bars[start:]
+    intraday = any(b.dt.hour or b.dt.minute for b in window)
     fmt = "%Y-%m-%d %H:%M" if intraday else "%Y-%m-%d"
-    labels = [b.dt.strftime(fmt) for b in bars]
+    labels = [b.dt.strftime(fmt) for b in window]
 
     def label(i: int) -> str:
-        return labels[i]
+        return labels[i - start]
 
-    window = bars
     up_c, dn_c = (UP_RED, DOWN_GREEN) if cn_colors else (UP_GREEN, DOWN_RED)
 
     rows = 1 + int(show_macd) + int(result is not None)
@@ -110,7 +115,8 @@ def plot_chan(
             fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="线段",
                                      line=dict(color=SEG_COLOR, width=3)), row=1, col=1)
 
-    sigs = [s for s in analyzer.signals if s.raw_index >= start and s.level in levels]
+    sig_levels = levels if signal_levels is None else signal_levels
+    sigs = [s for s in analyzer.signals if s.raw_index >= start and s.level in sig_levels]
     for is_buy in (True, False):
         group = [s for s in sigs if s.is_buy == is_buy]
         if not group:
@@ -156,7 +162,7 @@ def plot_chan(
         e = eq["equity"].iloc[start:]
         c = eq["close"].iloc[start:]
         # buy & hold rebased to the strategy's equity at the start of the initial view
-        base = e.iloc[view] / c.iloc[view]
+        base = e.iloc[view - start] / c.iloc[view - start]
         fig.add_trace(go.Scatter(x=xs, y=list(e), name="策略权益", line=dict(color=BI_COLOR, width=1.6)), row=row, col=1)
         fig.add_trace(go.Scatter(x=xs, y=list(c * base), name="买入持有",
                                  line=dict(color="#999", width=1, dash="dot")), row=row, col=1)
@@ -167,7 +173,7 @@ def plot_chan(
         legend=dict(orientation="h", yref="container", y=0.955, yanchor="top", x=0),
         margin=dict(l=50, r=20, t=100, b=40), xaxis_rangeslider_visible=False, bargap=0,
     )
-    fig.update_xaxes(type="category", nticks=12, showgrid=False, range=[view - 0.5, len(bars) - 0.5])
+    fig.update_xaxes(type="category", nticks=12, showgrid=False, range=[view - start - 0.5, len(bars) - start - 0.5])
     # y ranges follow the initial view (double-click a panel to autoscale after panning)
     seen = bars[view:]
     lo, hi = min(b.low for b in seen), max(b.high for b in seen)

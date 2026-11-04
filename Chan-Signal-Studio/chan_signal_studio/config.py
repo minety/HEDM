@@ -39,6 +39,14 @@ class ChanConfig:
     # level (中枢升级, nine moves); first-class points are no longer measured
     # against its entering move. Set to 0 to disable.
     max_pivot_moves_type1: int = 9
+    # When segment-level points are evaluated. "stroke": once the first counter
+    # stroke after the segment's extreme has formed (one evaluation per
+    # top/bottom attempt). "none": on every update of the unfinished segment,
+    # which fires again at each marginal new extreme.
+    seg_confirm: str = "stroke"
+    # 区间套 (optional): a segment-level B1/S1 must coincide with a stroke-level
+    # B1/S1 at the same point.
+    seg_type1_nested: bool = False
 
     def __post_init__(self) -> None:
         if self.bi_mode not in ("new", "old"):
@@ -48,6 +56,8 @@ class ChanConfig:
         unknown = set(self.divergence_methods) - {"area", "dif", "slope"}
         if unknown:
             raise ValueError(f"unknown divergence methods: {sorted(unknown)}")
+        if self.seg_confirm not in ("stroke", "none"):
+            raise ValueError("seg_confirm must be 'stroke' or 'none'")
         bad_levels = set(self.signal_levels) - {"bi", "seg"}
         if bad_levels:
             raise ValueError(f"unknown signal levels: {sorted(bad_levels)}")

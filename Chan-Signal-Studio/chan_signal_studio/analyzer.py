@@ -9,7 +9,6 @@ or a backtest without look-ahead.
 
 from __future__ import annotations
 
-import dataclasses
 from typing import Iterable
 
 from .bi import BiBuilder
@@ -73,7 +72,7 @@ class ChanAnalyzer:
         """Feed one bar. Returns the signals that became known on this bar."""
         if self.bars and bar.dt < self.bars[-1].dt:
             raise ValueError(f"bars must be in time order: {bar.dt} < {self.bars[-1].dt}")
-        bar = dataclasses.replace(bar, index=len(self.bars))
+        bar = Bar(bar.dt, bar.open, bar.high, bar.low, bar.close, bar.volume, len(self.bars))
         self.bars.append(bar)
         self.macd.update(bar.close)
         fx = self._kline.update(bar)
@@ -95,17 +94,31 @@ class ChanAnalyzer:
         bis = self.bis
         self.bi_zs = build_zhongshu(bis, "bi", c.zs_require_entry, self.bi_zs, first_changed)
 
-        before = _seg_signature(self.segs)
-        self.segs = build_segments(bis, self.segs, first_changed)
+        old_segs = self.segs
+        before = _seg_signature(old_segs)
+        self.segs = build_segments(bis, old_segs, first_changed)
         seg_changed = _seg_signature(self.segs) != before
         if seg_changed:
-            self.seg_zs = build_zhongshu(self.segs, "seg", c.zs_require_entry)
+            # kept segments are the very same objects; the first new one marks the change
+            n = min(len(old_segs), len(self.segs))
+            first_seg = next((i for i in range(n) if self.segs[i] is not old_segs[i]), n)
+            self.seg_zs = build_zhongshu(self.segs, "seg", c.zs_require_entry, self.seg_zs, first_seg)
 
         new: list[Signal] = []
         if "bi" in c.signal_levels:
             new += self._detector.detect("bi", bis, self.bi_zs, self._known, bar.index, bar.dt)
-        if "seg" in c.signal_levels and seg_changed:
-            new += self._detector.detect("seg", self.segs, self.seg_zs, self._known, bar.index, bar.dt)
+        if "seg" in c.signal_levels and self.segs:
+            if c.seg_confirm == "stroke":
+                # evaluate once the first counter stroke after the segment's extreme exists
+                run = len(bis) - 1 == self.segs[-1].end_bi + 1
+            else:
+                run = seg_changed
+            if run:
+                nested = None
+                if c.seg_type1_nested:
+                    nested = self._detector.type1_candidate("bi", bis[: self.segs[-1].end_bi + 1], self.bi_zs)
+                new += self._detector.detect("seg", self.segs, self.seg_zs, self._known, bar.index, bar.dt,
+                                             nested=nested)
         for s in new:
             self._known[s.key] = s
             self.signals.append(s)

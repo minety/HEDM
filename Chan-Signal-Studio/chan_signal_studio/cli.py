@@ -18,6 +18,9 @@ def _add_source_args(p: argparse.ArgumentParser) -> None:
     g.add_argument("--akshare", metavar="CODE", help="A-share code via AKShare, e.g. 000001")
     g.add_argument("--ccxt", metavar="SYMBOL", help="crypto symbol via ccxt, e.g. BTC/USDT")
     g.add_argument("--exchange", default="binance", help="ccxt exchange id (default: binance)")
+    g.add_argument("--spy", metavar="FREQ", help="free SPY history 2000-2026 resampled to FREQ, e.g. 5min, 30min, 1D "
+                   "(downloaded once from github.com/prsdro/spy and cached)")
+    g.add_argument("--session", choices=["rth", "all"], default="rth", help="--spy: regular hours only (default) or all")
     p.add_argument("--freq", default="1d", help="bar frequency for AKShare/ccxt, e.g. 1d, 30m, 1h (default 1d)")
     p.add_argument("--start", help="start date YYYY-MM-DD")
     p.add_argument("--end", help="end date YYYY-MM-DD")
@@ -40,11 +43,16 @@ def _load(args) -> list[Bar]:
         from .data.ccxt_source import CCXTSource
 
         return CCXTSource(args.exchange).get_bars(args.ccxt, args.freq, args.start, args.end)
+    if args.spy:
+        from .data.base import bars_from_df
+        from .data.spy_history import build_spy_bars
+
+        return bars_from_df(build_spy_bars(args.spy, args.session, args.start, args.end))
     if args.demo:
         from .data.synthetic import generate_bars
 
         return generate_bars(args.bars, seed=args.seed, start=args.start or "2018-01-02")
-    raise SystemExit("no data source: use --csv, --demo, --akshare or --ccxt")
+    raise SystemExit("no data source: use --csv, --spy, --demo, --akshare or --ccxt")
 
 
 def _config(args) -> ChanConfig:
@@ -53,6 +61,8 @@ def _config(args) -> ChanConfig:
 
 
 def _source_name(args) -> str:
+    if args.spy:
+        return f"SPY {args.spy}"
     return args.csv or args.akshare or args.ccxt or "DEMO"
 
 
@@ -119,6 +129,18 @@ def cmd_backtest(args) -> int:
     return 0
 
 
+def cmd_fetch_spy(args) -> int:
+    from .data.spy_history import SOURCE_REPO, build_spy_bars
+
+    df = build_spy_bars(args.freq, args.session, args.start, args.end)
+    out = Path(args.out or f"data/SPY_{args.freq}_{args.session}.csv")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(out, index=False)
+    print(f"SPY {args.freq} ({args.session}): {len(df)} 根K线 {df.dt.iloc[0]} ~ {df.dt.iloc[-1]} -> {out}")
+    print(f"数据来源: {SOURCE_REPO} (仅供研究学习使用, 未随本项目分发)")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="chan-signal-studio", description="Chan-Signal-Studio 缠论分析与回测")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -151,6 +173,14 @@ def build_parser() -> argparse.ArgumentParser:
     b.add_argument("--plot", metavar="HTML", help="save an interactive chart with equity curve")
     b.add_argument("--last", type=int, help="only chart the last N bars")
     b.set_defaults(func=cmd_backtest)
+
+    f = sub.add_parser("fetch-spy", help="download free SPY 1-minute history and save resampled bars as CSV")
+    f.add_argument("--freq", default="5min", help="pandas frequency, e.g. 1min, 5min, 30min, 60min, 1D")
+    f.add_argument("--session", choices=["rth", "all"], default="rth")
+    f.add_argument("--start", help="start date YYYY-MM-DD")
+    f.add_argument("--end", help="end date YYYY-MM-DD")
+    f.add_argument("--out", help="output CSV (default data/SPY_<freq>_<session>.csv)")
+    f.set_defaults(func=cmd_fetch_spy)
     return ap
 
 

@@ -5,3 +5,4 @@ dist/
 .pytest_cache/
 output/
 *.html
+data/

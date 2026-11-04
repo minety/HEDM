@@ -67,9 +67,13 @@ class SignalDetector:
         known: dict[tuple[str, str, int], Signal],
         detect_raw: int,
         detect_dt: datetime,
+        nested: Signal | None = None,
     ) -> list[Signal]:
+        """Signals on the newest move. ``nested`` is the lower level's type-1
+        candidate at its newest move (used for 区间套 confirmation)."""
         if len(moves) < 3:
             return []
+        self._nested = nested
         out: list[Signal] = []
         for fn in (self._type1, self._type2, self._type3):
             sig = fn(level, moves, pivots, known, detect_raw, detect_dt)
@@ -122,9 +126,20 @@ class SignalDetector:
             if p.entry_direction is s.direction:
                 trend = p.zd > z.zg if down else p.zg < z.zd
         kind = SignalKind.B1 if down else SignalKind.S1
+        info = {"entry_move": entry.index, "divergence": checks}
+        if level == "seg" and self.config.seg_type1_nested:
+            n = getattr(self, "_nested", None)
+            if n is None or n.kind is not kind or n.raw_index != s.end_raw:
+                return None
+            info["nested_bi"] = n.info.get("divergence")
         return self._signal(kind, level, s, detect_raw, detect_dt, stop=s.end_price,
-                            zs_index=z.index, trend=trend,
-                            info={"entry_move": entry.index, "divergence": checks})
+                            zs_index=z.index, trend=trend, info=info)
+
+    def type1_candidate(self, level, moves, pivots) -> Signal | None:
+        """Stateless type-1 check on the newest move (no dedupe, nothing recorded)."""
+        if len(moves) < 3:
+            return None
+        return self._type1(level, moves, pivots, {}, -1, None)
 
     def _type2(self, level, moves, pivots, known, detect_raw, detect_dt) -> Signal | None:
         s = moves[-1]
